@@ -27,7 +27,7 @@ func refreshDashboardStats(username string) error {
 	var critical, high, medium, low, info int
 
 	postgres.DB.QueryRow("SELECT COUNT(*) FROM asset").Scan(&assetCount)
-	postgres.DB.QueryRow("SELECT COUNT(*) FROM asset_web_fingerprints").Scan(&fingerprintCount)
+	postgres.DB.QueryRow("SELECT COUNT(*) FROM web_fingerprint").Scan(&fingerprintCount)
 
 	// 漏洞各级别统计
 	postgres.DB.QueryRow(`

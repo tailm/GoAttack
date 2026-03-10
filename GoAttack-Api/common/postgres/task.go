@@ -245,10 +245,32 @@ func ClearTaskResults(taskID int) error {
 		return fmt.Errorf("删除端口信息失败: %v", err)
 	}
 
-	// 3. 删除 asset_web_fingerprints 表中该任务的所有记录
-	_, err = tx.Exec("DELETE FROM asset_web_fingerprints WHERE task_id = $1", taskID)
+	// 3. 删除 web_fingerprint 表中该任务的所有记录
+	// 注意：web_fingerprint表通过asset_port_id关联到asset_port，再通过asset关联到task
+	// 需要先获取该任务的所有资产ID
+	var assetIDs []int
+	rows, err := tx.Query("SELECT id FROM asset WHERE task_id = $1", taskID)
 	if err != nil {
-		return fmt.Errorf("删除Web指纹失败: %v", err)
+		return fmt.Errorf("查询任务资产失败: %v", err)
+	}
+	defer rows.Close()
+	
+	for rows.Next() {
+		var assetID int
+		if err := rows.Scan(&assetID); err != nil {
+			continue
+		}
+		assetIDs = append(assetIDs, assetID)
+	}
+	
+	// 删除关联的web_fingerprint记录
+	if len(assetIDs) > 0 {
+		// 构建IN查询
+		query := "DELETE FROM web_fingerprint WHERE asset_port_id IN (SELECT id FROM asset_port WHERE asset_id = ANY($1))"
+		_, err = tx.Exec(query, assetIDs)
+		if err != nil {
+			return fmt.Errorf("删除Web指纹失败: %v", err)
+		}
 	}
 
 	// 4. 提交事务
