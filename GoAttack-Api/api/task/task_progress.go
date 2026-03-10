@@ -1,7 +1,7 @@
 package task
 
 import (
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"GoAttack/common/redis"
 	"strconv"
 
@@ -57,8 +57,8 @@ func GetTaskRealtimeProgress(c *gin.Context) {
 		return
 	}
 
-	// 3. Redis没有数据，从MySQL获取（任务已完成或未开始）
-	row, err := mysql.GetTaskByID(taskID)
+	// 3. Redis没有数据，从PostgreSQL获取（任务已完成或未开始）
+	row, err := postgres.GetTaskByID(taskID)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"code": 50000,
@@ -87,7 +87,7 @@ func GetTaskRealtimeProgress(c *gin.Context) {
 		return
 	}
 
-	// 返回MySQL数据
+	// 返回PostgreSQL数据
 	c.JSON(200, gin.H{
 		"code": 20000,
 		"msg":  "获取进度成功",
@@ -95,7 +95,7 @@ func GetTaskRealtimeProgress(c *gin.Context) {
 			"task_id":  taskID,
 			"status":   task.Status,
 			"progress": task.Progress,
-			"source":   "mysql", // 标识数据来源
+			"source":   "postgres", // 标识数据来源
 		},
 	})
 }

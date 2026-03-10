@@ -1,4 +1,4 @@
-package mysql
+package postgres
 
 import (
 	"database/sql"
@@ -12,14 +12,15 @@ import (
 
 // CreateTask 创建扫描任务
 func CreateTask(name, target, taskType, creator, description, options string) (int64, error) {
-	result, err := DB.Exec(
-		"INSERT INTO task (name, target, type, creator, description, options, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())",
+	var id int64
+	err := DB.QueryRow(
+		"INSERT INTO task (name, target, type, creator, description, options, created_at) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP) RETURNING id",
 		name, target, taskType, creator, description, options,
-	)
+	).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
-	return result.LastInsertId()
+	return id, nil
 }
 
 // GetTaskByID 根据ID查询任务
@@ -27,7 +28,7 @@ func GetTaskByID(taskID int) (*sql.Row, error) {
 	query := `
 	SELECT id, name, target, type, status, progress, creator, description, 
 	       options, created_at, updated_at, started_at, completed_at
-	FROM task WHERE id = ?`
+	FROM task WHERE id = $1`
 	return DB.QueryRow(query, taskID), nil
 }
 
@@ -36,22 +37,27 @@ func GetTaskList(page, pageSize int, creator, status, name, taskType string) (*s
 	// 构建查询条件
 	whereClause := "WHERE 1=1"
 	args := make([]interface{}, 0)
+	argIndex := 1
 
 	if creator != "" {
-		whereClause += " AND creator = ?"
+		whereClause += fmt.Sprintf(" AND creator = $%d", argIndex)
 		args = append(args, creator)
+		argIndex++
 	}
 	if status != "" {
-		whereClause += " AND status = ?"
+		whereClause += fmt.Sprintf(" AND status = $%d", argIndex)
 		args = append(args, status)
+		argIndex++
 	}
 	if name != "" {
-		whereClause += " AND name LIKE ?"
+		whereClause += fmt.Sprintf(" AND name LIKE $%d", argIndex)
 		args = append(args, "%"+name+"%")
+		argIndex++
 	}
 	if taskType != "" {
-		whereClause += " AND type = ?"
+		whereClause += fmt.Sprintf(" AND type = $%d", argIndex)
 		args = append(args, taskType)
+		argIndex++
 	}
 
 	// 查询总数
@@ -67,7 +73,7 @@ func GetTaskList(page, pageSize int, creator, status, name, taskType string) (*s
 	query := `
 	SELECT id, name, target, type, status, progress, creator, description, 
 	       options, created_at, updated_at, started_at, completed_at
-	FROM task ` + whereClause + ` ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	FROM task ` + whereClause + ` ORDER BY created_at DESC LIMIT $` + fmt.Sprintf("%d", argIndex) + ` OFFSET $` + fmt.Sprintf("%d", argIndex+1)
 	args = append(args, pageSize, offset)
 
 	rows, err := DB.Query(query, args...)
@@ -86,7 +92,7 @@ func GetPendingScheduledTasks() (*sql.Rows, error) {
 // UpdateTaskStatus 更新任务状态
 func UpdateTaskStatus(taskID int, status string, progress int) error {
 	_, err := DB.Exec(
-		"UPDATE task SET status = ?, progress = ?, updated_at = NOW() WHERE id = ?",
+		"UPDATE task SET status = $1, progress = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3",
 		status, progress, taskID,
 	)
 	return err
@@ -97,11 +103,11 @@ func UpdateTaskStatus(taskID int, status string, progress int) error {
 func UpdateTaskProgress(taskID int, status string, progress int) error {
 	query := `
 	UPDATE task 
-	SET status = ?, progress = ?, updated_at = NOW(),
-	    created_at = IF(? = 'running' AND ? = 0, NOW(), created_at),
-	    started_at = IF(? = 'running' AND ? = 0, NOW(), started_at),
-	    completed_at = IF(? = 'running' AND ? = 0, NULL, IF(? IN ('completed', 'failed', 'stopped'), NOW(), completed_at))
-	WHERE id = ?`
+	SET status = $1, progress = $2, updated_at = CURRENT_TIMESTAMP,
+	    created_at = CASE WHEN $3 = 'running' AND $4 = 0 THEN CURRENT_TIMESTAMP ELSE created_at END,
+	    started_at = CASE WHEN $5 = 'running' AND $6 = 0 THEN CURRENT_TIMESTAMP ELSE started_at END,
+	    completed_at = CASE WHEN $7 = 'running' AND $8 = 0 THEN NULL WHEN $9 IN ('completed', 'failed', 'stopped') THEN CURRENT_TIMESTAMP ELSE completed_at END
+	WHERE id = $10`
 
 	_, err := DB.Exec(query, status, progress, status, progress, status, progress, status, progress, status, taskID)
 	return err
@@ -114,7 +120,7 @@ func UpdateTaskResult(taskID int, status string, progress int, _ string) error {
 
 // DeleteTask 删除任务（级联删除相关漏洞）
 func DeleteTask(taskID int) error {
-	_, err := DB.Exec("DELETE FROM task WHERE id = ?", taskID)
+	_, err := DB.Exec("DELETE FROM task WHERE id = $1", taskID)
 	return err
 }
 
@@ -129,7 +135,7 @@ func GetTaskStats(creator string) (map[string]int, error) {
 		SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) as running,
 		SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
 		SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
-	FROM task WHERE creator = ?`
+	FROM task WHERE creator = $1`
 
 	var total, pending, running, completed, failed int
 	err := DB.QueryRow(query, creator).Scan(&total, &pending, &running, &completed, &failed)
@@ -154,29 +160,33 @@ func GetTaskStats(creator string) (map[string]int, error) {
 func GetTasksByCreatorWithFilter(creator string, limit, offset int, name, status, taskType string) (*sql.Rows, error) {
 	query := `SELECT id, name, target, type, status, progress, creator, description, 
 			  options, created_at, updated_at, started_at, completed_at 
-			  FROM task WHERE creator = ?`
+			  FROM task WHERE creator = $1`
 
 	args := []interface{}{creator}
+	argIndex := 2
 
 	// 添加名称筛选
 	if name != "" {
-		query += " AND name LIKE ?"
+		query += fmt.Sprintf(" AND name LIKE $%d", argIndex)
 		args = append(args, "%"+name+"%")
+		argIndex++
 	}
 
 	// 添加状态筛选
 	if status != "" {
-		query += " AND status = ?"
+		query += fmt.Sprintf(" AND status = $%d", argIndex)
 		args = append(args, status)
+		argIndex++
 	}
 
 	// 添加类型筛选
 	if taskType != "" {
-		query += " AND type = ?"
+		query += fmt.Sprintf(" AND type = $%d", argIndex)
 		args = append(args, taskType)
+		argIndex++
 	}
 
-	query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+	query += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 	args = append(args, limit, offset)
 
 	return DB.Query(query, args...)
@@ -184,25 +194,29 @@ func GetTasksByCreatorWithFilter(creator string, limit, offset int, name, status
 
 // CountTasksByCreatorWithFilter 统计用户的任务数量（支持筛选）
 func CountTasksByCreatorWithFilter(creator, name, status, taskType string) (int, error) {
-	query := "SELECT COUNT(*) FROM task WHERE creator = ?"
+	query := "SELECT COUNT(*) FROM task WHERE creator = $1"
 	args := []interface{}{creator}
+	argIndex := 2
 
 	// 添加名称筛选
 	if name != "" {
-		query += " AND name LIKE ?"
+		query += fmt.Sprintf(" AND name LIKE $%d", argIndex)
 		args = append(args, "%"+name+"%")
+		argIndex++
 	}
 
 	// 添加状态筛选
 	if status != "" {
-		query += " AND status = ?"
+		query += fmt.Sprintf(" AND status = $%d", argIndex)
 		args = append(args, status)
+		argIndex++
 	}
 
 	// 添加类型筛选
 	if taskType != "" {
-		query += " AND type = ?"
+		query += fmt.Sprintf(" AND type = $%d", argIndex)
 		args = append(args, taskType)
+		argIndex++
 	}
 
 	var count int
@@ -220,19 +234,19 @@ func ClearTaskResults(taskID int) error {
 	defer tx.Rollback()
 
 	// 1. 删除 asset_scan_result 表中该任务的所有记录
-	_, err = tx.Exec("DELETE FROM asset_scan_result WHERE task_id = ?", taskID)
+	_, err = tx.Exec("DELETE FROM asset_scan_result WHERE task_id = $1", taskID)
 	if err != nil {
 		return fmt.Errorf("删除扫描结果失败: %v", err)
 	}
 
 	// 2. 删除 asset_port 表中该任务的所有记录
-	_, err = tx.Exec("DELETE FROM asset_port WHERE task_id = ?", taskID)
+	_, err = tx.Exec("DELETE FROM asset_port WHERE task_id = $1", taskID)
 	if err != nil {
 		return fmt.Errorf("删除端口信息失败: %v", err)
 	}
 
 	// 3. 删除 asset_web_fingerprints 表中该任务的所有记录
-	_, err = tx.Exec("DELETE FROM asset_web_fingerprints WHERE task_id = ?", taskID)
+	_, err = tx.Exec("DELETE FROM asset_web_fingerprints WHERE task_id = $1", taskID)
 	if err != nil {
 		return fmt.Errorf("删除Web指纹失败: %v", err)
 	}

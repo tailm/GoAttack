@@ -1,4 +1,4 @@
-package mysql
+package postgres
 
 import (
 	"database/sql"
@@ -14,7 +14,7 @@ type VulnNotificationSummary struct {
 
 // ensureNotificationRecord 确保用户有通知记录，不存在则插入
 func ensureNotificationRecord(username string) {
-	DB.Exec(`INSERT IGNORE INTO notification_read_time (username, last_read_at, last_cleared_at) VALUES (?, '2000-01-01 00:00:00', '2000-01-01 00:00:00')`, username)
+	DB.Exec(`INSERT INTO notification_read_time (username, last_read_at, last_cleared_at) VALUES ($1, '2000-01-01 00:00:00', '2000-01-01 00:00:00') ON CONFLICT (username) DO NOTHING`, username)
 }
 
 // GetVulnNotificationSummary 获取用户的漏洞通知摘要（用于 Navbar Badge）
@@ -23,7 +23,7 @@ func GetVulnNotificationSummary(username string) (*VulnNotificationSummary, erro
 
 	// 获取用户的已读时间和清空时间
 	var lastReadAt, lastClearedAt time.Time
-	err := DB.QueryRow(`SELECT last_read_at, last_cleared_at FROM notification_read_time WHERE username = ?`, username).
+	err := DB.QueryRow(`SELECT last_read_at, last_cleared_at FROM notification_read_time WHERE username = $1`, username).
 		Scan(&lastReadAt, &lastClearedAt)
 	if err != nil {
 		lastReadAt = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -46,7 +46,7 @@ func GetVulnNotificationSummary(username string) (*VulnNotificationSummary, erro
 			COALESCE(SUM(CASE WHEN v.severity IN ('critical','high') THEN 1 ELSE 0 END), 0) as high_count
 		FROM vulnerability v
 		INNER JOIN task t ON v.task_id = t.id
-		WHERE t.creator = ? AND v.discovered_at > ?
+		WHERE t.creator = $1 AND v.discovered_at > $2
 	`, username, baseTime)
 
 	var total, highCount int
@@ -67,7 +67,7 @@ func GetRecentVulnNotifications(username string, limit int) (*sql.Rows, error) {
 
 	// 获取清空时间（清空后的漏洞不显示）
 	var lastClearedAt time.Time
-	DB.QueryRow(`SELECT last_cleared_at FROM notification_read_time WHERE username = ?`, username).Scan(&lastClearedAt)
+	DB.QueryRow(`SELECT last_cleared_at FROM notification_read_time WHERE username = $1`, username).Scan(&lastClearedAt)
 
 	rows, err := DB.Query(`
 		SELECT
@@ -76,9 +76,9 @@ func GetRecentVulnNotifications(username string, limit int) (*sql.Rows, error) {
 			v.discovered_at
 		FROM vulnerability v
 		INNER JOIN task t ON v.task_id = t.id
-		WHERE t.creator = ? AND v.discovered_at > ?
+		WHERE t.creator = $1 AND v.discovered_at > $2
 		ORDER BY v.discovered_at DESC
-		LIMIT ?
+		LIMIT $3
 	`, username, lastClearedAt, limit)
 
 	return rows, err
@@ -87,13 +87,13 @@ func GetRecentVulnNotifications(username string, limit int) (*sql.Rows, error) {
 // MarkAllVulnNotificationsRead 将所有漏洞通知标记为已读（更新 last_read_at 为当前时间）
 func MarkAllVulnNotificationsRead(username string) error {
 	ensureNotificationRecord(username)
-	_, err := DB.Exec(`UPDATE notification_read_time SET last_read_at = NOW() WHERE username = ?`, username)
+	_, err := DB.Exec(`UPDATE notification_read_time SET last_read_at = CURRENT_TIMESTAMP WHERE username = $1`, username)
 	return err
 }
 
 // ClearVulnNotifications 清空通知（更新 last_cleared_at 为当前时间）
 func ClearVulnNotifications(username string) error {
 	ensureNotificationRecord(username)
-	_, err := DB.Exec(`UPDATE notification_read_time SET last_cleared_at = NOW(), last_read_at = NOW() WHERE username = ?`, username)
+	_, err := DB.Exec(`UPDATE notification_read_time SET last_cleared_at = CURRENT_TIMESTAMP, last_read_at = CURRENT_TIMESTAMP WHERE username = $1`, username)
 	return err
 }

@@ -1,4 +1,4 @@
-package mysql
+package postgres
 
 import (
 	"database/sql"
@@ -52,20 +52,20 @@ func SaveWebFingerprint(
 			url, ip, port, protocol,
 			title, status_code, server, content_type, content_length, response_time,
 			technologies, frameworks, matched_rules, favicon_hash, headers
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		ON DUPLICATE KEY UPDATE
-			title = VALUES(title),
-			status_code = VALUES(status_code),
-			server = VALUES(server),
-			content_type = VALUES(content_type),
-			content_length = VALUES(content_length),
-			response_time = VALUES(response_time),
-			technologies = VALUES(technologies),
-			frameworks = VALUES(frameworks),
-			matched_rules = VALUES(matched_rules),
-			favicon_hash = VALUES(favicon_hash),
-			headers = VALUES(headers),
-			last_checked = NOW()
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+		ON CONFLICT (task_id, url) DO UPDATE SET
+			title = EXCLUDED.title,
+			status_code = EXCLUDED.status_code,
+			server = EXCLUDED.server,
+			content_type = EXCLUDED.content_type,
+			content_length = EXCLUDED.content_length,
+			response_time = EXCLUDED.response_time,
+			technologies = EXCLUDED.technologies,
+			frameworks = EXCLUDED.frameworks,
+			matched_rules = EXCLUDED.matched_rules,
+			favicon_hash = EXCLUDED.favicon_hash,
+			headers = EXCLUDED.headers,
+			last_checked = CURRENT_TIMESTAMP
 	`
 
 	_, err = DB.Exec(
@@ -89,7 +89,7 @@ func GetWebFingerprintsByTaskID(taskID int) (*sql.Rows, error) {
 			wf.technologies, wf.frameworks, wf.matched_rules, wf.favicon_hash, wf.headers,
 			wf.discovered_at, wf.last_checked
 		FROM asset_web_fingerprints wf
-		WHERE wf.task_id = ?
+		WHERE wf.task_id = $1
 		ORDER BY wf.discovered_at DESC
 	`
 	return DB.Query(query, taskID)
@@ -105,7 +105,7 @@ func GetWebFingerprintsByAssetID(assetID int64) (*sql.Rows, error) {
 			wf.technologies, wf.frameworks, wf.matched_rules, wf.favicon_hash, wf.headers,
 			wf.discovered_at, wf.last_checked
 		FROM asset_web_fingerprints wf
-		WHERE wf.asset_id = ?
+		WHERE wf.asset_id = $1
 		ORDER BY wf.discovered_at DESC
 	`
 	return DB.Query(query, assetID)
@@ -113,7 +113,7 @@ func GetWebFingerprintsByAssetID(assetID int64) (*sql.Rows, error) {
 
 // DeleteWebFingerprintsByTaskID 删除指定任务的所有Web指纹记录
 func DeleteWebFingerprintsByTaskID(taskID int) error {
-	_, err := DB.Exec("DELETE FROM asset_web_fingerprints WHERE task_id = ?", taskID)
+	_, err := DB.Exec("DELETE FROM asset_web_fingerprints WHERE task_id = $1", taskID)
 	return err
 }
 
@@ -124,7 +124,7 @@ func GetHTTPPortsByTaskID(taskID int) (*sql.Rows, error) {
 		SELECT 
 			id, ip, port, protocol, service_name
 		FROM asset_port
-		WHERE task_id = ?
+		WHERE task_id = $1
 		AND state = 'open'
 		AND (
 			-- 常见HTTP/HTTPS端口

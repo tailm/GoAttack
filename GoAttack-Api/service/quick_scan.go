@@ -2,7 +2,7 @@ package service
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	redisdb "GoAttack/common/redis"
 	servicecommon "GoAttack/service/common"
 	"GoAttack/service/plugins"
@@ -74,7 +74,7 @@ func ExecuteQuickScan(ctx context.Context, taskID int, target string, options st
 
 	opts := parseQuickScanOptions(options)
 
-	if err := mysql.DeleteVulnerabilitiesByTaskID(taskID); err != nil {
+	if err := postgres.DeleteVulnerabilitiesByTaskID(taskID); err != nil {
 		log.Info("[QuickScan] Warning: failed to clear vulnerabilities for task #%d: %v", taskID, err)
 	}
 
@@ -212,7 +212,7 @@ func ExecuteQuickScan(ctx context.Context, taskID int, target string, options st
 	redisProgress.Message = "Quick scan completed"
 	redisdb.UpdateTaskProgress(taskID, redisProgress)
 
-	if err := mysql.UpdateTaskProgress(taskID, "completed", 100); err != nil {
+	if err := postgres.UpdateTaskProgress(taskID, "completed", 100); err != nil {
 		return fmt.Errorf("update task status failed: %v", err)
 	}
 
@@ -328,7 +328,7 @@ func ExecuteCustomScan(ctx context.Context, taskID int, target string, options s
 
 	opts := parseCustomScanOptions(options)
 
-	if err := mysql.DeleteVulnerabilitiesByTaskID(taskID); err != nil {
+	if err := postgres.DeleteVulnerabilitiesByTaskID(taskID); err != nil {
 		log.Info("[CustomScan] Warning: failed to clear vulnerabilities for task #%d: %v", taskID, err)
 	}
 
@@ -462,7 +462,7 @@ func ExecuteCustomScan(ctx context.Context, taskID int, target string, options s
 			}
 		}
 
-		rows, err := mysql.GetHTTPPortsByTaskID(taskID)
+		rows, err := postgres.GetHTTPPortsByTaskID(taskID)
 		if err == nil {
 			defer rows.Close()
 			for rows.Next() {
@@ -580,7 +580,7 @@ func ExecuteCustomScan(ctx context.Context, taskID int, target string, options s
 	redisProgress.Message = "Custom scan completed"
 	redisdb.UpdateTaskProgress(taskID, redisProgress)
 
-	if err := mysql.UpdateTaskProgress(taskID, "completed", 100); err != nil {
+	if err := postgres.UpdateTaskProgress(taskID, "completed", 100); err != nil {
 		return fmt.Errorf("update task status failed: %v", err)
 	}
 

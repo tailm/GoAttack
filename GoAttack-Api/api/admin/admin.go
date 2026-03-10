@@ -1,7 +1,7 @@
 package admin
 
 import (
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"GoAttack/common/redis"
 	"crypto/rand"
 	"errors"
@@ -103,7 +103,7 @@ func Register(c *gin.Context) {
 	}
 
 	// 创建用户
-	err := mysql.CreateUser(req.Username, req.Password)
+	err := postgres.CreateUser(req.Username, req.Password)
 	if err != nil {
 		// 检查是否是用户已存在的错误
 		if strings.Contains(err.Error(), "Duplicate") || strings.Contains(err.Error(), "已存在") {
@@ -208,7 +208,7 @@ func GetUserInfo(c *gin.Context) {
 	}
 
 	// 从数据库获取用户头像
-	avatar, err := mysql.GetUserAvatar(username.(string))
+	avatar, err := postgres.GetUserAvatar(username.(string))
 	if err != nil || avatar == "" {
 		// fmt.Printf("获取头像失败或为空 - 用户: %s, 错误: %v, 头像: %s\n", username, err, avatar)
 		// 如果没有头像或获取失败，使用默认头像
@@ -220,7 +220,7 @@ func GetUserInfo(c *gin.Context) {
 	if role == nil {
 		role = "user"
 	}
-	uid, _ := mysql.GetUserID(username.(string))
+	uid, _ := postgres.GetUserID(username.(string))
 
 	// 返回用户信息
 	c.JSON(200, gin.H{
@@ -281,7 +281,7 @@ func ChangePassword(c *gin.Context) {
 	}
 
 	// 调用数据库更新密码
-	err := mysql.UpdatePassword(username.(string), req.OldPassword, req.NewPassword)
+	err := postgres.UpdatePassword(username.(string), req.OldPassword, req.NewPassword)
 	if err != nil {
 		c.JSON(400, gin.H{
 			"code": 40002,
@@ -338,7 +338,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Set("username", claims.Username)
 
 		// 获取并设置角色
-		role, err := mysql.GetUserRole(claims.Username)
+		role, err := postgres.GetUserRole(claims.Username)
 		if err == nil {
 			c.Set("role", role)
 		}
@@ -349,8 +349,8 @@ func AuthMiddleware() gin.HandlerFunc {
 
 // validateCredentials 验证用户名和密码
 func validateCredentials(username, password string) bool {
-	// 从 MySQL 数据库验证用户
-	valid, role, err := mysql.ValidateUser(username, password)
+	// 从 PostgreSQL 数据库验证用户
+	valid, role, err := postgres.ValidateUser(username, password)
 	if err != nil {
 		fmt.Printf("Database error during validation: %v\n", err)
 		return false
@@ -489,7 +489,7 @@ func UploadAvatar(c *gin.Context) {
 	avatarURL := fmt.Sprintf("http://localhost:3000/uploads/avatars/%s", filename)
 
 	// 更新数据库
-	if err := mysql.UpdateUserAvatar(username.(string), avatarURL); err != nil {
+	if err := postgres.UpdateUserAvatar(username.(string), avatarURL); err != nil {
 		fmt.Printf("更新数据库失败: %v\n", err)
 	}
 

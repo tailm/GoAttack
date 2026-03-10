@@ -1,4 +1,4 @@
-package mysql
+package postgres
 
 import (
 	"database/sql"
@@ -47,7 +47,7 @@ func SavePocTemplate(poc *PocTemplate) error {
 	// 检查文件哈希是否已存在
 	if poc.FileHash != "" {
 		var existingID int64
-		err := DB.QueryRow("SELECT id FROM poc_template WHERE file_hash = ?", poc.FileHash).Scan(&existingID)
+		err := DB.QueryRow("SELECT id FROM poc_template WHERE file_hash = $1", poc.FileHash).Scan(&existingID)
 		if err == nil {
 			// 哈希已存在，返回重复错误
 			return fmt.Errorf("%w: 此POC模板已存在（ID: %d），无需重复导入", ErrDuplicatePoc, existingID)
@@ -60,7 +60,7 @@ func SavePocTemplate(poc *PocTemplate) error {
 
 	// 检查 template_id 是否已存在
 	var existingID int64
-	err := DB.QueryRow("SELECT id FROM poc_template WHERE template_id = ?", poc.TemplateID).Scan(&existingID)
+	err := DB.QueryRow("SELECT id FROM poc_template WHERE template_id = $1", poc.TemplateID).Scan(&existingID)
 	if err == nil {
 		// template_id 已存在，返回重复错误
 		return fmt.Errorf("%w: 相同模板ID '%s' 已存在（ID: %d），无需重复导入", ErrDuplicatePoc, poc.TemplateID, existingID)
@@ -74,24 +74,17 @@ func SavePocTemplate(poc *PocTemplate) error {
 		cve_id, cnvd_id, cwe_id, cvss_score, cvss_metrics, protocol, max_request,
 		reference, classification, metadata, file_path, file_hash,
 		template_content, is_active, verified
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) RETURNING id`
 
-	result, err := DB.Exec(query,
+	err = DB.QueryRow(query,
 		poc.TemplateID, poc.Name, poc.Description, poc.Author, poc.Category,
 		poc.Severity, poc.Tags, poc.CveID, poc.CnvdID, poc.CweID, poc.CvssScore,
 		poc.CvssMetrics, poc.Protocol, poc.MaxRequest, poc.Reference,
 		poc.Classification, poc.Metadata, poc.FilePath, poc.FileHash,
 		poc.TemplateContent, poc.IsActive, poc.Verified,
-	)
-	if err != nil {
-		return err
-	}
+	).Scan(&poc.ID)
 
-	id, err := result.LastInsertId()
-	if err == nil {
-		poc.ID = id
-	}
-	return nil
+	return err
 }
 
 // BatchSavePocTemplates 批量保存POC模板（去重）
@@ -117,7 +110,7 @@ func BatchSavePocTemplates(pocs []*PocTemplate) (int, error) {
 		placeholders := make([]string, len(hashes))
 		args := make([]interface{}, len(hashes))
 		for i, hash := range hashes {
-			placeholders[i] = "?"
+			placeholders[i] = fmt.Sprintf("$%d", i+1)
 			args[i] = hash
 		}
 
@@ -163,17 +156,17 @@ func BatchSavePocTemplates(pocs []*PocTemplate) (int, error) {
 		cve_id, cnvd_id, cwe_id, cvss_score, cvss_metrics, protocol, max_request,
 		reference, classification, metadata, file_path, file_hash,
 		template_content, is_active, verified
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	ON DUPLICATE KEY UPDATE
-		name = VALUES(name), description = VALUES(description), author = VALUES(author),
-		category = VALUES(category), severity = VALUES(severity), tags = VALUES(tags),
-		cve_id = VALUES(cve_id), cnvd_id = VALUES(cnvd_id), cwe_id = VALUES(cwe_id),
-		cvss_score = VALUES(cvss_score), cvss_metrics = VALUES(cvss_metrics),
-		protocol = VALUES(protocol), max_request = VALUES(max_request),
-		reference = VALUES(reference), classification = VALUES(classification),
-		metadata = VALUES(metadata), file_path = VALUES(file_path),
-		file_hash = VALUES(file_hash), template_content = VALUES(template_content),
-		updated_at = NOW()`
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+	ON CONFLICT (template_id) DO UPDATE SET
+		name = EXCLUDED.name, description = EXCLUDED.description, author = EXCLUDED.author,
+		category = EXCLUDED.category, severity = EXCLUDED.severity, tags = EXCLUDED.tags,
+		cve_id = EXCLUDED.cve_id, cnvd_id = EXCLUDED.cnvd_id, cwe_id = EXCLUDED.cwe_id,
+		cvss_score = EXCLUDED.cvss_score, cvss_metrics = EXCLUDED.cvss_metrics,
+		protocol = EXCLUDED.protocol, max_request = EXCLUDED.max_request,
+		reference = EXCLUDED.reference, classification = EXCLUDED.classification,
+		metadata = EXCLUDED.metadata, file_path = EXCLUDED.file_path,
+		file_hash = EXCLUDED.file_hash, template_content = EXCLUDED.template_content,
+		updated_at = CURRENT_TIMESTAMP`
 
 	stmt, err := tx.Prepare(query)
 	if err != nil {
@@ -206,12 +199,12 @@ func BatchSavePocTemplates(pocs []*PocTemplate) (int, error) {
 // UpdatePocTemplate 更新POC模板
 func UpdatePocTemplate(poc *PocTemplate) error {
 	query := `UPDATE poc_template SET
-		name = ?, description = ?, author = ?, category = ?, severity = ?,
-		tags = ?, cve_id = ?, cnvd_id = ?, cwe_id = ?, cvss_score = ?, cvss_metrics = ?,
-		protocol = ?, max_request = ?, reference = ?, classification = ?,
-		metadata = ?, file_path = ?, file_hash = ?, template_content = ?,
-		is_active = ?, verified = ?, updated_at = NOW()
-	WHERE id = ?`
+		name = $1, description = $2, author = $3, category = $4, severity = $5,
+		tags = $6, cve_id = $7, cnvd_id = $8, cwe_id = $9, cvss_score = $10, cvss_metrics = $11,
+		protocol = $12, max_request = $13, reference = $14, classification = $15,
+		metadata = $16, file_path = $17, file_hash = $18, template_content = $19,
+		is_active = $20, verified = $21, updated_at = CURRENT_TIMESTAMP
+	WHERE id = $22`
 
 	_, err := DB.Exec(query,
 		poc.Name, poc.Description, poc.Author, poc.Category, poc.Severity,
@@ -233,7 +226,7 @@ func GetPocTemplateByID(id int64) (*PocTemplate, error) {
 		COALESCE(reference, ''), COALESCE(classification, ''), COALESCE(metadata, ''), 
 		file_path, COALESCE(file_hash, ''), COALESCE(template_content, ''),
 		is_active, verified, created_at, updated_at, last_scanned_at
-	FROM poc_template WHERE id = ?`
+	FROM poc_template WHERE id = $1`
 
 	err := DB.QueryRow(query, id).Scan(
 		&poc.ID, &poc.TemplateID, &poc.Name, &poc.Description, &poc.Author,
@@ -259,7 +252,7 @@ func GetPocTemplateByTemplateID(templateID string) (*PocTemplate, error) {
 		COALESCE(reference, ''), COALESCE(classification, ''), COALESCE(metadata, ''), 
 		file_path, COALESCE(file_hash, ''), COALESCE(template_content, ''),
 		is_active, verified, created_at, updated_at, last_scanned_at
-	FROM poc_template WHERE template_id = ?`
+	FROM poc_template WHERE template_id = $1`
 
 	err := DB.QueryRow(query, templateID).Scan(
 		&poc.ID, &poc.TemplateID, &poc.Name, &poc.Description, &poc.Author,
@@ -275,6 +268,7 @@ func GetPocTemplateByTemplateID(templateID string) (*PocTemplate, error) {
 	return poc, nil
 }
 
+// GetActivePocTemplates 获取所有启用的POC模板
 func GetActivePocTemplates() ([]*PocTemplate, error) {
 	query := `SELECT id, template_id, name, 
 		COALESCE(description, ''), COALESCE(author, ''), COALESCE(category, ''), COALESCE(severity, ''),
@@ -283,7 +277,7 @@ func GetActivePocTemplates() ([]*PocTemplate, error) {
 		COALESCE(reference, ''), COALESCE(classification, ''), COALESCE(metadata, ''), 
 		file_path, COALESCE(file_hash, ''), COALESCE(template_content, ''),
 		is_active, verified, created_at, updated_at, last_scanned_at
-	FROM poc_template WHERE is_active = 1`
+	FROM poc_template WHERE is_active = true`
 
 	rows, err := DB.Query(query)
 	if err != nil {
@@ -314,36 +308,44 @@ func GetActivePocTemplates() ([]*PocTemplate, error) {
 func ListPocTemplates(page, pageSize int, filters map[string]interface{}, sort, order string) ([]PocTemplate, int64, error) {
 	whereClause := "WHERE 1=1"
 	var args []interface{}
+	argIndex := 1
 
 	if name, ok := filters["name"].(string); ok && name != "" {
-		whereClause += " AND name LIKE ?"
+		whereClause += fmt.Sprintf(" AND name LIKE $%d", argIndex)
 		args = append(args, "%"+name+"%")
+		argIndex++
 	}
 	if category, ok := filters["category"].(string); ok && category != "" {
-		whereClause += " AND category = ?"
+		whereClause += fmt.Sprintf(" AND category = $%d", argIndex)
 		args = append(args, category)
+		argIndex++
 	}
 	if severity, ok := filters["severity"].(string); ok && severity != "" {
-		whereClause += " AND severity = ?"
+		whereClause += fmt.Sprintf(" AND severity = $%d", argIndex)
 		args = append(args, severity)
+		argIndex++
 	}
 	// 改为模糊匹配
 	if cveID, ok := filters["cve_id"].(string); ok && cveID != "" {
-		whereClause += " AND cve_id LIKE ?"
+		whereClause += fmt.Sprintf(" AND cve_id LIKE $%d", argIndex)
 		args = append(args, "%"+cveID+"%")
+		argIndex++
 	}
 	// 添加 CNVD 模糊匹配
 	if cnvdID, ok := filters["cnvd_id"].(string); ok && cnvdID != "" {
-		whereClause += " AND cnvd_id LIKE ?"
+		whereClause += fmt.Sprintf(" AND cnvd_id LIKE $%d", argIndex)
 		args = append(args, "%"+cnvdID+"%")
+		argIndex++
 	}
 	if protocol, ok := filters["protocol"].(string); ok && protocol != "" {
-		whereClause += " AND protocol = ?"
+		whereClause += fmt.Sprintf(" AND protocol = $%d", argIndex)
 		args = append(args, protocol)
+		argIndex++
 	}
 	if isActive, ok := filters["is_active"].(bool); ok {
-		whereClause += " AND is_active = ?"
+		whereClause += fmt.Sprintf(" AND is_active = $%d", argIndex)
 		args = append(args, isActive)
+		argIndex++
 	}
 
 	countQuery := "SELECT COUNT(*) FROM poc_template " + whereClause
@@ -371,7 +373,7 @@ func ListPocTemplates(page, pageSize int, filters map[string]interface{}, sort, 
 		COALESCE(reference, ''), COALESCE(classification, ''), COALESCE(metadata, ''), 
 		file_path, COALESCE(file_hash, ''), COALESCE(template_content, ''),
 		is_active, verified, created_at, updated_at, last_scanned_at
-	FROM poc_template ` + whereClause + ` ORDER BY ` + sortField + ` ` + sortOrder + ` LIMIT ? OFFSET ?`
+	FROM poc_template ` + whereClause + ` ORDER BY ` + sortField + ` ` + sortOrder + fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 
 	args = append(args, pageSize, offset)
 
@@ -402,7 +404,7 @@ func ListPocTemplates(page, pageSize int, filters map[string]interface{}, sort, 
 
 // SearchPocTemplates 搜索POC模板 (全局搜索)
 func SearchPocTemplates(keyword string, page, pageSize int) ([]PocTemplate, int64, error) {
-	whereClause := "WHERE name LIKE ? OR description LIKE ? OR template_id LIKE ? OR cve_id LIKE ? OR cnvd_id LIKE ?"
+	whereClause := "WHERE name LIKE $1 OR description LIKE $2 OR template_id LIKE $3 OR cve_id LIKE $4 OR cnvd_id LIKE $5"
 	pattern := "%" + keyword + "%"
 	args := []interface{}{pattern, pattern, pattern, pattern, pattern}
 
@@ -421,7 +423,7 @@ func SearchPocTemplates(keyword string, page, pageSize int) ([]PocTemplate, int6
 		COALESCE(reference, ''), COALESCE(classification, ''), COALESCE(metadata, ''), 
 		file_path, COALESCE(file_hash, ''), COALESCE(template_content, ''),
 		is_active, verified, created_at, updated_at, last_scanned_at
-	FROM poc_template ` + whereClause + ` ORDER BY id DESC LIMIT ? OFFSET ?`
+	FROM poc_template ` + whereClause + ` ORDER BY id DESC LIMIT $6 OFFSET $7`
 
 	args = append(args, pageSize, offset)
 
@@ -452,7 +454,7 @@ func SearchPocTemplates(keyword string, page, pageSize int) ([]PocTemplate, int6
 
 // DeletePocTemplate 删除POC模板
 func DeletePocTemplate(id int64) error {
-	_, err := DB.Exec("DELETE FROM poc_template WHERE id = ?", id)
+	_, err := DB.Exec("DELETE FROM poc_template WHERE id = $1", id)
 	return err
 }
 
@@ -462,16 +464,14 @@ func BatchDeletePocTemplates(ids []int64) error {
 		return nil
 	}
 
-	query := "DELETE FROM poc_template WHERE id IN ("
+	placeholders := make([]string, len(ids))
 	args := make([]interface{}, len(ids))
 	for i, id := range ids {
-		if i > 0 {
-			query += ","
-		}
-		query += "?"
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
 		args[i] = id
 	}
-	query += ")"
+
+	query := "DELETE FROM poc_template WHERE id IN (" + strings.Join(placeholders, ",") + ")"
 
 	_, err := DB.Exec(query, args...)
 	return err

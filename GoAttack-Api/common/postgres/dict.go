@@ -1,4 +1,4 @@
-package mysql
+package postgres
 
 import (
 	"database/sql"
@@ -43,7 +43,7 @@ func GetAllDicts() ([]Dict, error) {
 func GetDictById(id int) (Dict, error) {
 	var d Dict
 	var created sql.NullString
-	query := "SELECT id, name, type, category, size, lines_cnt, path, created_at FROM dict WHERE id = ?"
+	query := "SELECT id, name, type, category, size, lines_cnt, path, created_at FROM dict WHERE id = $1"
 	err := DB.QueryRow(query, id).Scan(&d.ID, &d.Name, &d.Type, &d.Category, &d.Size, &d.LinesCnt, &d.Path, &created)
 	d.CreatedAt = created.String
 	return d, err
@@ -53,7 +53,7 @@ func GetDictById(id int) (Dict, error) {
 func GetDictByName(name string) (Dict, error) {
 	var d Dict
 	var created sql.NullString
-	query := "SELECT id, name, type, category, size, lines_cnt, path, created_at FROM dict WHERE name = ?"
+	query := "SELECT id, name, type, category, size, lines_cnt, path, created_at FROM dict WHERE name = $1"
 	err := DB.QueryRow(query, name).Scan(&d.ID, &d.Name, &d.Type, &d.Category, &d.Size, &d.LinesCnt, &d.Path, &created)
 	d.CreatedAt = created.String
 	return d, err
@@ -63,11 +63,11 @@ func GetDictByName(name string) (Dict, error) {
 func UpsertDict(d Dict) error {
 	query := `
 		INSERT INTO dict (name, type, category, size, lines_cnt, path)
-		VALUES (?, ?, ?, ?, ?, ?)
-		ON DUPLICATE KEY UPDATE
-		size = VALUES(size),
-		lines_cnt = VALUES(lines_cnt),
-		path = VALUES(path)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (name) DO UPDATE SET
+		size = EXCLUDED.size,
+		lines_cnt = EXCLUDED.lines_cnt,
+		path = EXCLUDED.path
 	`
 	_, err := DB.Exec(query, d.Name, d.Type, d.Category, d.Size, d.LinesCnt, d.Path)
 	return err
@@ -75,6 +75,6 @@ func UpsertDict(d Dict) error {
 
 // DeleteDictById 删除字典
 func DeleteDictById(id int) error {
-	_, err := DB.Exec("DELETE FROM dict WHERE id = ?", id)
+	_, err := DB.Exec("DELETE FROM dict WHERE id = $1", id)
 	return err
 }

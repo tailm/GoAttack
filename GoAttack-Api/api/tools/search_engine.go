@@ -2,7 +2,7 @@ package tools
 
 import (
   "GoAttack/common/log"
-  "GoAttack/common/mysql"
+  "GoAttack/common/postgres"
   "GoAttack/common/redis"
   "GoAttack/model"
   "GoAttack/util/fofa"
@@ -138,7 +138,7 @@ func getEngineMinSize(engine string) int {
 func getToolAPIConfig(engine string) (string, string) {
   apiKey := ""
   apiEmail := ""
-  cfg, err := mysql.GetToolConfig(engine)
+  cfg, err := postgres.GetToolConfig(engine)
   if err == nil && cfg != nil {
     apiKey = strings.TrimSpace(cfg.APIKey)
     apiEmail = strings.TrimSpace(cfg.APIEmail)

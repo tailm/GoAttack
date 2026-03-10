@@ -2,7 +2,7 @@ package service
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"GoAttack/model"
 	"database/sql"
 	"encoding/json"
@@ -20,7 +20,7 @@ func StartTaskScheduler() {
 }
 
 func checkAndRunScheduledTasks() {
-	rows, err := mysql.GetPendingScheduledTasks()
+	rows, err := postgres.GetPendingScheduledTasks()
 	if err != nil {
 		if err != sql.ErrNoRows {
 			log.Warn("获取定时任务失败: %v", err)
@@ -71,7 +71,7 @@ func checkAndRunScheduledTasks() {
 					log.Info("定时任务到达执行时间, 开始启动任务: #%d %s", task.ID, task.Name)
 
 					// 更新状态为 running
-					mysql.UpdateTaskProgress(task.ID, "running", 0)
+					postgres.UpdateTaskProgress(task.ID, "running", 0)
 
 					// 开启 goroutine 异步执行
 					go func(taskID int, target string, taskType string, options string) {

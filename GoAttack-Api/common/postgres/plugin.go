@@ -1,4 +1,4 @@
-package mysql
+package postgres
 
 import (
 	"database/sql"
@@ -48,12 +48,12 @@ func GetAllPlugins() ([]Plugin, error) {
 func UpsertPlugin(p Plugin) error {
 	query := `
 		INSERT INTO plugins (name, version, type, enabled, description, path)
-		VALUES (?, ?, ?, ?, ?, ?)
-		ON DUPLICATE KEY UPDATE
-		version = VALUES(version),
-		type = VALUES(type),
-		description = VALUES(description),
-		path = VALUES(path)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (name) DO UPDATE SET
+		version = EXCLUDED.version,
+		type = EXCLUDED.type,
+		description = EXCLUDED.description,
+		path = EXCLUDED.path
 	`
 	_, err := DB.Exec(query, p.Name, p.Version, p.Type, p.Enabled, p.Description, p.Path)
 	return err
@@ -61,7 +61,7 @@ func UpsertPlugin(p Plugin) error {
 
 // UpdatePluginStatus 更新插件状态
 func UpdatePluginStatus(id int, enabled bool) error {
-	query := "UPDATE plugins SET enabled = ? WHERE id = ?"
+	query := "UPDATE plugins SET enabled = $1 WHERE id = $2"
 	res, err := DB.Exec(query, enabled, id)
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func UpdatePluginStatus(id int, enabled bool) error {
 
 // UpdatePluginConfig 更新插件配置
 func UpdatePluginConfig(id int, config string) error {
-	query := "UPDATE plugins SET config = ? WHERE id = ?"
+	query := "UPDATE plugins SET config = $1 WHERE id = $2"
 	res, err := DB.Exec(query, config, id)
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func UpdatePluginConfig(id int, config string) error {
 // IsPluginEnabled 检查插件是否启用
 func IsPluginEnabled(name string) bool {
 	var enabled bool
-	err := DB.QueryRow("SELECT enabled FROM plugins WHERE name = ?", name).Scan(&enabled)
+	err := DB.QueryRow("SELECT enabled FROM plugins WHERE name = $1", name).Scan(&enabled)
 	if err != nil {
 		return false
 	}
@@ -100,7 +100,7 @@ func IsPluginEnabled(name string) bool {
 // GetPluginConfig 获取插件配置
 func GetPluginConfig(name string) string {
 	var config sql.NullString
-	err := DB.QueryRow("SELECT config FROM plugins WHERE name = ?", name).Scan(&config)
+	err := DB.QueryRow("SELECT config FROM plugins WHERE name = $1", name).Scan(&config)
 	if err != nil {
 		return ""
 	}

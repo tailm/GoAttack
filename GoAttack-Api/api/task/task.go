@@ -2,7 +2,7 @@ package task
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"GoAttack/model"
 	"GoAttack/service"
 	scanport "GoAttack/service/scan_port"
@@ -114,7 +114,7 @@ func CreateTask(c *gin.Context) {
 		username, req.Target, req.Type, string(optionsJSON))
 
 	// 创建任务
-	taskID, err := mysql.CreateTask(
+	taskID, err := postgres.CreateTask(
 		req.Name,
 		req.Target,
 		req.Type,
@@ -179,7 +179,7 @@ func GetTaskList(c *gin.Context) {
 	taskType := c.Query("type")
 
 	// 获取任务列表（带筛选）
-	rows, err := mysql.GetTasksByCreatorWithFilter(username.(string), pageSize, offset, name, status, taskType)
+	rows, err := postgres.GetTasksByCreatorWithFilter(username.(string), pageSize, offset, name, status, taskType)
 	if err != nil {
 		log.Info("获取任务列表失败: %v", err)
 		c.JSON(500, gin.H{
@@ -236,7 +236,7 @@ func GetTaskList(c *gin.Context) {
 	}
 
 	// 获取总数（应用筛选条件）
-	total, err := mysql.CountTasksByCreatorWithFilter(username.(string), name, status, taskType)
+	total, err := postgres.CountTasksByCreatorWithFilter(username.(string), name, status, taskType)
 	if err != nil {
 		log.Info("获取任务总数失败: %v", err)
 		total = 0
@@ -267,7 +267,7 @@ func GetTaskDetail(c *gin.Context) {
 	}
 
 	// 查询任务
-	row, err := mysql.GetTaskByID(taskID)
+	row, err := postgres.GetTaskByID(taskID)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"code": 50000,
@@ -378,9 +378,9 @@ func UpdateTaskStatus(c *gin.Context) {
 
 	// 更新任务
 	if update.Result != "" {
-		err = mysql.UpdateTaskResult(taskID, update.Status, update.Progress, update.Result)
+		err = postgres.UpdateTaskResult(taskID, update.Status, update.Progress, update.Result)
 	} else {
-		err = mysql.UpdateTaskStatus(taskID, update.Status, update.Progress)
+		err = postgres.UpdateTaskStatus(taskID, update.Status, update.Progress)
 	}
 
 	if err != nil {
@@ -414,7 +414,7 @@ func DeleteTask(c *gin.Context) {
 	}
 
 	// 删除任务
-	err = mysql.DeleteTask(taskID)
+	err = postgres.DeleteTask(taskID)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"code": 50000,
@@ -445,7 +445,7 @@ func GetTaskStats(c *gin.Context) {
 	}
 
 	// 获取用户的任务总数
-	total, err := mysql.CountTasksByCreatorWithFilter(username.(string), "", "", "")
+	total, err := postgres.CountTasksByCreatorWithFilter(username.(string), "", "", "")
 	if err != nil {
 		log.Info("获取任务总数失败: %v", err)
 		c.JSON(500, gin.H{
@@ -482,7 +482,7 @@ func StartTask(c *gin.Context) {
 	}
 
 	// 查询任务信息
-	row, err := mysql.GetTaskByID(taskID)
+	row, err := postgres.GetTaskByID(taskID)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"code": 50000,
@@ -541,7 +541,7 @@ func StartTask(c *gin.Context) {
 	}
 
 	// 先同步更新状态，确保前端获取时状态已改变
-	mysql.UpdateTaskProgress(taskID, "running", 0)
+	postgres.UpdateTaskProgress(taskID, "running", 0)
 
 	// 异步执行扫描任务
 	go func() {
@@ -578,7 +578,7 @@ func StopTask(c *gin.Context) {
 	}
 
 	// 先查询任务当前状态
-	row, err := mysql.GetTaskByID(taskID)
+	row, err := postgres.GetTaskByID(taskID)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"code": 50000,
@@ -640,7 +640,7 @@ func StopTask(c *gin.Context) {
 	if !service.CancelTask(taskID) {
 		log.Info("[API] 任务 #%d 扫描服务不在运行列表中，可能已接近完成，执行强制状态更新", taskID)
 		// 即使服务不在内存中，也强制更新数据库状态为已停止
-		err = mysql.UpdateTaskStatus(taskID, "stopped", task.Progress)
+		err = postgres.UpdateTaskStatus(taskID, "stopped", task.Progress)
 		if err != nil {
 			c.JSON(500, gin.H{
 				"code": 50000,
@@ -677,7 +677,7 @@ func GetTaskResults(c *gin.Context) {
 	results := make([]map[string]interface{}, 0)
 
 	// 1. 获取常规扫描结果 (端口/服务/存活)
-	rows, err := mysql.GetAssetScanResultsByTaskID(taskID)
+	rows, err := postgres.GetAssetScanResultsByTaskID(taskID)
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {
@@ -722,7 +722,7 @@ func GetTaskResults(c *gin.Context) {
 	}
 
 	// 2. 获取Web指纹扫描结果并整合进资产列表
-	webRows, err := mysql.GetWebFingerprintsByTaskID(taskID)
+	webRows, err := postgres.GetWebFingerprintsByTaskID(taskID)
 	if err != nil {
 		log.Info("[API] 获取Web指纹记录失败: %v", err)
 	} else {
@@ -1047,7 +1047,7 @@ func GetTaskVulnerabilities(c *gin.Context) {
 		return
 	}
 
-	rows, err := mysql.GetVulnerabilitiesByTaskID(taskID)
+	rows, err := postgres.GetVulnerabilitiesByTaskID(taskID)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"code": 50000,

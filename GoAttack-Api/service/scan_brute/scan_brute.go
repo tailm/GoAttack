@@ -2,7 +2,7 @@ package scan_brute
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"context"
 	"database/sql"
 	"fmt"
@@ -52,7 +52,7 @@ func ExecuteBruteForce(ctx context.Context, taskID int) {
 
 func getBruteTasks(taskID int) []*BruteTask {
 	query := `SELECT ip, port, protocol, service_name FROM asset_port WHERE task_id = ? AND state = 'open'`
-	rows, err := mysql.DB.Query(query, taskID)
+	rows, err := postgres.DB.Query(query, taskID)
 	var tasks []*BruteTask
 	if err != nil {
 		log.Info("[Brute] 获取端口失败: %v", err)
@@ -134,7 +134,7 @@ func reportVuln(taskID int, ip string, port int, service string, user string, pa
 	// 尝试从资产端口表中获取 Nmap 指纹识别出的详细产品和版本信息
 	query := `SELECT service_product, service_version FROM asset_port WHERE task_id = ? AND ip = ? AND port = ? LIMIT 1`
 	var product, version sql.NullString
-	mysql.DB.QueryRow(query, taskID, ip, port).Scan(&product, &version)
+	postgres.DB.QueryRow(query, taskID, ip, port).Scan(&product, &version)
 
 	svcDisplay := strings.ToUpper(service)
 	serviceName := service
@@ -183,5 +183,5 @@ func reportVuln(taskID int, ip string, port int, service string, user string, pa
 		"metadata":          "{}",
 	}
 
-	mysql.SaveVulnerability(vuln)
+	postgres.SaveVulnerability(vuln)
 }

@@ -2,7 +2,7 @@ package service
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	redisdb "GoAttack/common/redis"
 	"GoAttack/model"
 	servicecommon "GoAttack/service/common"
@@ -92,10 +92,10 @@ func ExecuteTask(taskID int, target string, taskType string, options string) err
 	defer UnregisterTask(taskID)
 
 	// ✅ 重新扫描前清除旧结果
-	mysql.ClearTaskResults(taskID)
+	postgres.ClearTaskResults(taskID)
 
 	// 更新任务状态为running
-	_ = mysql.UpdateTaskProgress(taskID, "running", 0)
+	_ = postgres.UpdateTaskProgress(taskID, "running", 0)
 
 	if taskType == "full" {
 		return ExecuteFullScan(ctx, taskID, target, options)
@@ -114,7 +114,7 @@ func ExecuteTask(taskID int, target string, taskType string, options string) err
 	// 其他扫描类型暂不支持
 	errMsg := fmt.Sprintf("不支持的扫描类型: %s", taskType)
 	log.Info("[服务] 任务 #%d 失败: %s", taskID, errMsg)
-	mysql.UpdateTaskResult(taskID, "failed", 0, fmt.Sprintf(`{"error": "%s"}`, errMsg))
+	postgres.UpdateTaskResult(taskID, "failed", 0, fmt.Sprintf(`{"error": "%s"}`, errMsg))
 	return fmt.Errorf(errMsg)
 }
 
@@ -124,7 +124,7 @@ func ExecuteAliveScan(ctx context.Context, taskID int, target string, options st
 	log.Info("[存活扫描] 开始执行任务 #%d: %s", taskID, target)
 
 	// ✨ 清除该任务的旧扫描结果（重新扫描时避免结果累积）
-	if err := mysql.ClearTaskResults(taskID); err != nil {
+	if err := postgres.ClearTaskResults(taskID); err != nil {
 		log.Info("[警告] 清除任务 #%d 旧结果失败: %v", taskID, err)
 		// 不阻止扫描继续进行
 	} else {
@@ -150,7 +150,7 @@ func ExecuteAliveScan(ctx context.Context, taskID int, target string, options st
 	log.Info("[存活扫描] 任务 #%d 配置 - 超时: %v, 并发: %d", taskID, timeout, concurrency)
 
 	// ✅ 重新扫描前清除旧结果
-	mysql.ClearTaskResults(taskID)
+	postgres.ClearTaskResults(taskID)
 
 	// 初始化Redis进度数据
 	redisProgress := redisdb.TaskProgress{
@@ -212,7 +212,7 @@ func ExecuteAliveScan(ctx context.Context, taskID int, target string, options st
 		}
 
 		// 更新MySQL和Redis状态
-		mysql.UpdateTaskProgress(taskID, status, 0)
+		postgres.UpdateTaskProgress(taskID, status, 0)
 		redisProgress.Status = status
 		redisProgress.Message = fmt.Sprintf("扫描失败: %v", err)
 		redisdb.UpdateTaskProgress(taskID, redisProgress)
@@ -262,7 +262,7 @@ func ExecuteAliveScan(ctx context.Context, taskID int, target string, options st
 			assetType = "domain"
 		}
 
-		assetID, err := mysql.CreateOrUpdateAsset(assetValue, assetType, result.HostAlive)
+		assetID, err := postgres.CreateOrUpdateAsset(assetValue, assetType, result.HostAlive)
 		if err != nil {
 			log.Info("[警告] 保存资产 #%s 失败: %v", assetValue, err)
 			continue
@@ -288,7 +288,7 @@ func ExecuteAliveScan(ctx context.Context, taskID int, target string, options st
 			redisProgress.FoundAssets = aliveHosts // 更新发现的存活主机数
 		}
 
-		err = mysql.SaveAssetScanResult(taskID, assetID, "alive", status, string(resultJSON))
+		err = postgres.SaveAssetScanResult(taskID, assetID, "alive", status, string(resultJSON))
 		if err != nil {
 			log.Info("[警告] 保存资产扫描结果失败: %v", err)
 		}
@@ -306,7 +306,7 @@ func ExecuteAliveScan(ctx context.Context, taskID int, target string, options st
 	redisdb.UpdateTaskProgress(taskID, redisProgress)
 
 	// ✅ 再更新 MySQL 状态为 completed
-	err = mysql.UpdateTaskProgress(taskID, "completed", 100)
+	err = postgres.UpdateTaskProgress(taskID, "completed", 100)
 	if err != nil {
 		return fmt.Errorf("更新任务完成状态失败: %v", err)
 	}
@@ -329,7 +329,7 @@ func ExecutePortScan(ctx context.Context, taskID int, target string, options str
 	log.Info("[端口扫描] 开始执行任务 #%d: %s", taskID, target)
 
 	// ✨ 清除该任务的旧扫描结果（重新扫描时避免结果累积）
-	if err := mysql.ClearTaskResults(taskID); err != nil {
+	if err := postgres.ClearTaskResults(taskID); err != nil {
 		log.Info("[警告] 清除任务 #%d 旧结果失败: %v", taskID, err)
 		// 不阻止扫描继续进行
 	} else {
@@ -367,7 +367,7 @@ func ExecutePortScan(ctx context.Context, taskID int, target string, options str
 		taskID, portRange, timeout, concurrency, enableFingerprint)
 
 	// ✅ 重新扫描前清除旧结果
-	mysql.ClearTaskResults(taskID)
+	postgres.ClearTaskResults(taskID)
 
 	// 初始化Redis进度数据
 	redisProgress := redisdb.TaskProgress{
@@ -428,7 +428,7 @@ func ExecutePortScan(ctx context.Context, taskID int, target string, options str
 		}
 
 		// 更新MySQL和Redis状态
-		mysql.UpdateTaskProgress(taskID, status, 0)
+		postgres.UpdateTaskProgress(taskID, status, 0)
 		redisProgress.Status = status
 		redisProgress.Message = fmt.Sprintf("端口扫描失败: %v", err)
 		redisdb.UpdateTaskProgress(taskID, redisProgress)
@@ -498,7 +498,7 @@ func ExecutePortScan(ctx context.Context, taskID int, target string, options str
 			totalOpenPorts += result.ScanResult.OpenPorts
 		}
 
-		assetID, err := mysql.CreateOrUpdateAsset(assetValue, assetType, isAlive)
+		assetID, err := postgres.CreateOrUpdateAsset(assetValue, assetType, isAlive)
 		if err != nil {
 			log.Info("[警告] 保存资产 #%s 失败: %v", assetValue, err)
 			continue
@@ -584,7 +584,7 @@ func ExecutePortScan(ctx context.Context, taskID int, target string, options str
 			detail["error"] = result.Error.Error()
 		}
 
-		err = mysql.SaveAssetScanResult(taskID, assetID, "port", status, string(resultJSON))
+		err = postgres.SaveAssetScanResult(taskID, assetID, "port", status, string(resultJSON))
 		if err != nil {
 			log.Info("[警告] 保存端口扫描结果失败: %v", err)
 		}
@@ -639,7 +639,7 @@ func ExecutePortScan(ctx context.Context, taskID int, target string, options str
 			}
 
 			// 保存端口信息
-			err = mysql.SaveAssetPort(assetPort)
+			err = postgres.SaveAssetPort(assetPort)
 			if err != nil {
 				log.Info("[警告] 保存端口 %s:%d 到asset_port表失败: %v", result.ScanResult.IP, port.Port, err)
 			}
@@ -658,7 +658,7 @@ func ExecutePortScan(ctx context.Context, taskID int, target string, options str
 	redisdb.UpdateTaskProgress(taskID, redisProgress)
 
 	// ✅ 再更新 MySQL 状态为 completed
-	err = mysql.UpdateTaskProgress(taskID, "completed", 100)
+	err = postgres.UpdateTaskProgress(taskID, "completed", 100)
 	if err != nil {
 		return fmt.Errorf("更新任务完成状态失败: %v", err)
 	}
@@ -682,7 +682,7 @@ func ExecuteWebScan(ctx context.Context, taskID int, target string, options stri
 	log.Info("[Web扫描] 开始执行任务 #%d: %s", taskID, target)
 
 	// 1. 初始化进度
-	_ = mysql.UpdateTaskProgress(taskID, "running", 0)
+	_ = postgres.UpdateTaskProgress(taskID, "running", 0)
 	redisProgress := redisdb.TaskProgress{
 		TaskID:        taskID,
 		Status:        "running",
@@ -719,11 +719,11 @@ func ExecuteWebScan(ctx context.Context, taskID int, target string, options stri
 	results, err := portService.ScanTargets(ctx, target, portRange)
 	if err != nil {
 		if err == context.Canceled {
-			_ = mysql.UpdateTaskProgress(taskID, "stopped", 0)
+			_ = postgres.UpdateTaskProgress(taskID, "stopped", 0)
 			return err
 		}
 		errMsg := fmt.Sprintf("端口探测失败: %v", err)
-		mysql.UpdateTaskResult(taskID, "failed", 0, fmt.Sprintf(`{"error": "%s"}`, errMsg))
+		postgres.UpdateTaskResult(taskID, "failed", 0, fmt.Sprintf(`{"error": "%s"}`, errMsg))
 		return err
 	}
 
@@ -745,7 +745,7 @@ func ExecuteWebScan(ctx context.Context, taskID int, target string, options stri
 		}
 
 		isAlive := result.ScanResult.OpenPorts > 0
-		assetID, _ := mysql.CreateOrUpdateAsset(assetValue, "ip", isAlive)
+		assetID, _ := postgres.CreateOrUpdateAsset(assetValue, "ip", isAlive)
 
 		if isAlive {
 			hostsWithWeb++
@@ -760,7 +760,7 @@ func ExecuteWebScan(ctx context.Context, taskID int, target string, options stri
 					State:       port.State,
 					ServiceName: port.Service.Name,
 				}
-				_ = mysql.SaveAssetPort(assetPort)
+				_ = postgres.SaveAssetPort(assetPort)
 			}
 		}
 	}
@@ -769,7 +769,7 @@ func ExecuteWebScan(ctx context.Context, taskID int, target string, options stri
 	redisProgress.Progress = 50
 	redisProgress.Message = fmt.Sprintf("端口探测完成，发现 %d 个潜在 Web 服务，开始识别指纹...", hostsWithWeb)
 	redisdb.UpdateTaskProgress(taskID, redisProgress)
-	_ = mysql.UpdateTaskProgress(taskID, "running", 50)
+	_ = postgres.UpdateTaskProgress(taskID, "running", 50)
 
 	// 收集所有扫描过的目标（包含域名/URL等原始信息）
 	var scanTargets []*servicecommon.Target
@@ -782,7 +782,7 @@ func ExecuteWebScan(ctx context.Context, taskID int, target string, options stri
 	err = scanweb.ScanWebFingerprintsFromPorts(ctx, taskID, scanTargets)
 	if err != nil {
 		if err == context.Canceled {
-			_ = mysql.UpdateTaskProgress(taskID, "stopped", 50)
+			_ = postgres.UpdateTaskProgress(taskID, "stopped", 50)
 			return err
 		}
 		log.Info("[Web扫描] 指纹识别过程出错: %v", err)
@@ -795,7 +795,7 @@ func ExecuteWebScan(ctx context.Context, taskID int, target string, options stri
 	redisProgress.Progress = 100
 	redisProgress.Message = fmt.Sprintf("Web 扫描完成 (耗时: %v)", duration)
 	redisdb.UpdateTaskProgress(taskID, redisProgress)
-	_ = mysql.UpdateTaskProgress(taskID, "completed", 100)
+	_ = postgres.UpdateTaskProgress(taskID, "completed", 100)
 
 	log.Info("[Web扫描] 任务 #%d 执行完毕 (耗时: %v)", taskID, duration)
 	return nil
@@ -819,7 +819,7 @@ func SaveScanResult(result *model.ScanResult, scanType string) error {
 
 	// 存活状态：如果扫描有结果，通常认为存活
 	isAlive := true
-	assetID, err := mysql.CreateOrUpdateAsset(assetValue, assetType, isAlive)
+	assetID, err := postgres.CreateOrUpdateAsset(assetValue, assetType, isAlive)
 	if err != nil {
 		log.Info("[警告] 保存资产 #%s 失败: %v", assetValue, err)
 	}
@@ -831,7 +831,7 @@ func SaveScanResult(result *model.ScanResult, scanType string) error {
 		"fingerprints": result.Fingerprints,
 	}
 	detailsJSON, _ := json.Marshal(scanDetails)
-	err = mysql.SaveAssetScanResult(result.TaskID, assetID, scanType, "success", string(detailsJSON))
+	err = postgres.SaveAssetScanResult(result.TaskID, assetID, scanType, "success", string(detailsJSON))
 	if err != nil {
 		log.Info("[警告] 保存资产扫描结果失败: %v", err)
 	}
@@ -866,7 +866,7 @@ func SaveScanResult(result *model.ScanResult, scanType string) error {
 			"status":            vuln.Status,
 		}
 
-		err := mysql.SaveVulnerability(vulnMap)
+		err := postgres.SaveVulnerability(vulnMap)
 		if err != nil {
 			log.Info("[警告] 保存漏洞失败: %v", err)
 		}
@@ -886,7 +886,7 @@ func formatExtractedData(data map[string]string) string {
 
 // GetTaskVulnerabilities 获取任务的所有漏洞
 func GetTaskVulnerabilities(taskID int) ([]model.Vulnerability, error) {
-	rows, err := mysql.GetVulnerabilitiesByTaskID(taskID)
+	rows, err := postgres.GetVulnerabilitiesByTaskID(taskID)
 	if err != nil {
 		return nil, err
 	}
@@ -967,7 +967,7 @@ func GetTaskVulnerabilities(taskID int) ([]model.Vulnerability, error) {
 
 // GetVulnerabilityStats 获取漏洞统计信息
 func GetVulnerabilityStats(taskID int) (map[string]interface{}, error) {
-	stats, err := mysql.GetVulnerabilityStats(taskID)
+	stats, err := postgres.GetVulnerabilityStats(taskID)
 	if err != nil {
 		return nil, err
 	}

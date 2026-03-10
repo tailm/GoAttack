@@ -2,7 +2,7 @@ package plugins
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -19,7 +19,7 @@ import (
 // RunGobuster 执行 gobuster 扫描
 func RunGobuster(ctx context.Context, taskID int, target string, scanType string) error {
 	// 判断插件是否启用
-	if !mysql.IsPluginEnabled("gobuster") {
+	if !postgres.IsPluginEnabled("gobuster") {
 		log.Info("[Gobuster Plugin] NOT enabled, skip scanning.")
 		return nil
 	}
@@ -36,7 +36,7 @@ func RunGobuster(ctx context.Context, taskID int, target string, scanType string
 		return nil
 	}
 
-	configStr := mysql.GetPluginConfig("gobuster")
+	configStr := postgres.GetPluginConfig("gobuster")
 	var conf map[string]string
 	if configStr != "" {
 		_ = json.Unmarshal([]byte(configStr), &conf)
@@ -74,7 +74,7 @@ func RunGobuster(ctx context.Context, taskID int, target string, scanType string
 		targetDictName = dnsDictName
 	}
 
-	d, err := mysql.GetDictByName(targetDictName)
+	d, err := postgres.GetDictByName(targetDictName)
 	if err != nil || d.Path == "" {
 		log.Warn("[Gobuster Plugin] Failed to find dictionary in DB: %s", targetDictName)
 		return fmt.Errorf("dictionary not found in DB: %s", targetDictName)
@@ -194,14 +194,14 @@ func saveGobusterResult(taskID int, target string, finding string, findType stri
 	} else if after := strings.TrimPrefix(assetValue, "https://"); after != assetValue {
 		assetValue = strings.Split(after, "/")[0]
 	}
-	assetID, err := mysql.GetOrCreateAsset(assetValue, "ip")
+	assetID, err := postgres.GetOrCreateAsset(assetValue, "ip")
 	if err != nil {
 		log.Warn("[Gobuster Plugin] Failed to get/create asset for %s: %v", assetValue, err)
 		return
 	}
 
 	// 保存 Gobuster 发现的原始记录
-	_ = mysql.SaveWebFingerprint(
+	_ = postgres.SaveWebFingerprint(
 		taskID,
 		assetID,
 		nil, // portID
@@ -269,7 +269,7 @@ func followRedirectAndSave(taskID int, assetID int64, originalURL string, server
 		}
 	}
 
-	_ = mysql.SaveWebFingerprint(
+	_ = postgres.SaveWebFingerprint(
 		taskID,
 		assetID,
 		nil,

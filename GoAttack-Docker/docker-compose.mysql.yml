@@ -10,18 +10,17 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - PG_HOST=postgres
-      - PG_PORT=5432
-      - PG_USER=postgres
-      - PG_PASSWORD=goattack
-      - PG_DB=goattack
-      - PG_SSLMODE=disable
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=goattack
+      - MYSQL_DB=goattack
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=
       - REDIS_DB=0
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -44,23 +43,22 @@ services:
     networks:
       - goattack-net
 
-  postgres:
-    image: postgres:15-alpine
-    container_name: goattack-postgres
+  mysql:
+    image: mysql:8.0
+    container_name: goattack-mysql
     restart: always
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=goattack
-      - POSTGRES_DB=goattack
+      - MYSQL_ROOT_PASSWORD=goattack
+      - MYSQL_DATABASE=goattack
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - mysql-data:/var/lib/mysql
       - ../GoAttack-Api/common/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - goattack-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -86,5 +84,5 @@ networks:
     driver: bridge
 
 volumes:
-  postgres-data:
+  mysql-data:
   redis-data:

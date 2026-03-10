@@ -1,4 +1,4 @@
-package mysql
+package postgres
 
 import (
 	"database/sql"
@@ -16,7 +16,7 @@ import (
 func ValidateUser(username, password string) (bool, string, error) {
 	var hashedPassword string
 	var role string
-	err := DB.QueryRow("SELECT password, role FROM user WHERE username = ?", username).Scan(&hashedPassword, &role)
+	err := DB.QueryRow("SELECT password, role FROM \"user\" WHERE username = $1", username).Scan(&hashedPassword, &role)
 	if err == sql.ErrNoRows {
 		return false, "", nil
 	}
@@ -35,7 +35,7 @@ func ValidateUser(username, password string) (bool, string, error) {
 // GetUserRole 获取用户角色
 func GetUserRole(username string) (string, error) {
 	var role string
-	err := DB.QueryRow("SELECT role FROM user WHERE username = ?", username).Scan(&role)
+	err := DB.QueryRow("SELECT role FROM \"user\" WHERE username = $1", username).Scan(&role)
 	if err != nil {
 		return "", err
 	}
@@ -45,7 +45,7 @@ func GetUserRole(username string) (string, error) {
 // GetUserID 获取用户ID
 func GetUserID(username string) (int, error) {
 	var id int
-	err := DB.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&id)
+	err := DB.QueryRow("SELECT id FROM \"user\" WHERE username = $1", username).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -56,7 +56,7 @@ func GetUserID(username string) (int, error) {
 func CreateUser(username, password string) error {
 	// 检查用户是否已存在
 	var count int
-	err := DB.QueryRow("SELECT COUNT(*) FROM user WHERE username = ?", username).Scan(&count)
+	err := DB.QueryRow("SELECT COUNT(*) FROM \"user\" WHERE username = $1", username).Scan(&count)
 	if err != nil {
 		return fmt.Errorf("检查用户失败: %v", err)
 	}
@@ -72,7 +72,7 @@ func CreateUser(username, password string) error {
 
 	// 插入新用户
 	_, err = DB.Exec(
-		"INSERT INTO user (username, password, role, created_at) VALUES (?, ?, ?, NOW())",
+		"INSERT INTO \"user\" (username, password, role, created_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)",
 		username,
 		string(hashedPassword),
 		"user", // 默认角色为普通用户
@@ -88,7 +88,7 @@ func CreateUser(username, password string) error {
 func UpdatePassword(username, oldPassword, newPassword string) error {
 	// 先验证旧密码是否正确
 	var hashedPassword string
-	err := DB.QueryRow("SELECT password FROM user WHERE username = ?", username).Scan(&hashedPassword)
+	err := DB.QueryRow("SELECT password FROM \"user\" WHERE username = $1", username).Scan(&hashedPassword)
 	if err == sql.ErrNoRows {
 		return fmt.Errorf("用户不存在")
 	}
@@ -109,14 +109,14 @@ func UpdatePassword(username, oldPassword, newPassword string) error {
 	}
 
 	// 更新密码
-	_, err = DB.Exec("UPDATE user SET password = ? WHERE username = ?", string(newHashedPassword), username)
+	_, err = DB.Exec("UPDATE \"user\" SET password = $1 WHERE username = $2", string(newHashedPassword), username)
 	return err
 }
 
 // GetUserAvatar 获取用户头像
 func GetUserAvatar(username string) (string, error) {
 	var avatar string
-	err := DB.QueryRow("SELECT avatar FROM user WHERE username = ?", username).Scan(&avatar)
+	err := DB.QueryRow("SELECT avatar FROM \"user\" WHERE username = $1", username).Scan(&avatar)
 	if err != nil {
 		return "", err
 	}
@@ -125,6 +125,6 @@ func GetUserAvatar(username string) (string, error) {
 
 // UpdateUserAvatar 更新用户头像
 func UpdateUserAvatar(username, avatarURL string) error {
-	_, err := DB.Exec("UPDATE user SET avatar = ? WHERE username = ?", avatarURL, username)
+	_, err := DB.Exec("UPDATE \"user\" SET avatar = $1 WHERE username = $2", avatarURL, username)
 	return err
 }

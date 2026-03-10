@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 
 	"gopkg.in/yaml.v3"
 )
@@ -56,7 +56,7 @@ func NewPocScanner(templatesDir string) *PocScanner {
 func (s *PocScanner) ScanAndImport() (int, int, error) {
 	log.Println("开始扫描 nuclei-templates 目录:", s.templatesDir)
 
-	var allPocs []*mysql.PocTemplate
+	var allPocs []*postgres.PocTemplate
 	totalFiles := 0
 	validFiles := 0
 	savedCount := 0 // 实际保存的POC数量
@@ -88,7 +88,7 @@ func (s *PocScanner) ScanAndImport() (int, int, error) {
 
 			// 每1000个批量保存一次
 			if len(allPocs) >= 1000 {
-				saved, err := mysql.BatchSavePocTemplates(allPocs)
+				saved, err := postgres.BatchSavePocTemplates(allPocs)
 				if err != nil {
 					log.Printf("批量保存POC失败: %v", err)
 				} else {
@@ -96,7 +96,7 @@ func (s *PocScanner) ScanAndImport() (int, int, error) {
 					skipped := len(allPocs) - saved
 					log.Printf("已保存 %d 个新POC模板，跳过 %d 个重复模板", saved, skipped)
 				}
-				allPocs = []*mysql.PocTemplate{}
+				allPocs = []*postgres.PocTemplate{}
 			}
 		}
 
@@ -109,7 +109,7 @@ func (s *PocScanner) ScanAndImport() (int, int, error) {
 
 	// 保存剩余的POC
 	if len(allPocs) > 0 {
-		saved, err := mysql.BatchSavePocTemplates(allPocs)
+		saved, err := postgres.BatchSavePocTemplates(allPocs)
 		if err != nil {
 			return 0, 0, err
 		}
@@ -124,7 +124,7 @@ func (s *PocScanner) ScanAndImport() (int, int, error) {
 }
 
 // ParseContent 解析原始内容并返回PocTemplate
-func (s *PocScanner) ParseContent(content []byte, filename string) (*mysql.PocTemplate, error) {
+func (s *PocScanner) ParseContent(content []byte, filename string) (*postgres.PocTemplate, error) {
 	// 计算内容哈希
 	hash := sha256.Sum256(content)
 	fileHash := hex.EncodeToString(hash[:])
@@ -263,7 +263,7 @@ func (s *PocScanner) ParseContent(content []byte, filename string) (*mysql.PocTe
 	}
 
 	// 构造 PocTemplate
-	poc := &mysql.PocTemplate{
+	poc := &postgres.PocTemplate{
 		TemplateID:      tmpl.ID,
 		Name:            tmpl.Info.Name,
 		Description:     tmpl.Info.Description,
@@ -292,7 +292,7 @@ func (s *PocScanner) ParseContent(content []byte, filename string) (*mysql.PocTe
 }
 
 // parseTemplate 解析单个模板文件
-func (s *PocScanner) parseTemplate(filePath string) (*mysql.PocTemplate, error) {
+func (s *PocScanner) parseTemplate(filePath string) (*postgres.PocTemplate, error) {
 	// 读取文件内容
 	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -442,7 +442,7 @@ func (s *PocScanner) parseTemplate(filePath string) (*mysql.PocTemplate, error) 
 	}
 
 	// 构造 PocTemplate
-	poc := &mysql.PocTemplate{
+	poc := &postgres.PocTemplate{
 		TemplateID:      tmpl.ID,
 		Name:            tmpl.Info.Name,
 		Description:     tmpl.Info.Description,

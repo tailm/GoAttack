@@ -93,10 +93,10 @@ GoAttack 是一款运用Go语言作为后端和Vue 3作为前端开发的现代�
 
 ## 🛠 技术架构栈
 
-* **后端服务**: Go (Gin, Go-Redis, Go-MySQL-Driver, Chromedp等)
+* **后端服务**: Go (Gin, Go-Redis, lib/pq PostgreSQL驱动, Chromedp等)
 * **前端展示**: Vue3 + TypeScript + Arco Design + Echarts
 * **中间件及存储层**:
-  * 关系数据库：MySQL 8.0+
+  * 关系数据库：PostgreSQL 12+
   * 会话/缓存及消息协同：Redis (用于服务内进度同步等)
 * **自动化与部署生态**: Docker, Docker-compose 级编排一键起建应用。
 
@@ -106,7 +106,7 @@ GoAttack 是一款运用Go语言作为后端和Vue 3作为前端开发的现代�
 
 ### 使用 Docker 快速部署 (推荐)
 
-使用项目提供的 `docker-compose.yml` 能够将 GoAttack 的运行环境包含 MySQL、Redis、以及 GoAttack 后端接口 API 在内进行一键容器化自动拉起部署。
+使用项目提供的 `docker-compose.yml` 能够将 GoAttack 的运行环境包含 PostgreSQL、Redis、以及 GoAttack 后端接口 API 在内进行一键容器化自动拉起部署。
 
 1. **环境准备**
    请确保您所部署的主机上已安装好 `Docker` 及 `Docker Compose` 环境。
@@ -118,12 +118,12 @@ cd GoAttack-Docker
 docker-compose up -d --build
 ```
 
-   这会自动拉取与建立 `mysql` 及 `redis`，并自动构建运行 GoAttack 环境并对外暴露 API 的 3000 和 前端映射的端口。
+   这会自动拉取与建立 `postgres` 及 `redis`，并自动构建运行 GoAttack 环境并对外暴露 API 的 3000 和 前端映射的端口。
 
 ### 手册本地部署
 
 #### 1. 初始化数据库
-确保本地或远程 MySQL (≥ 8.0) 数据库服务正在运行，并根据需要在 `GoAttack-Api/common/config/` (或相应环境配置) 中配置好数据库连接账号与密码。
+确保本地或远程 PostgreSQL (≥ 12) 数据库服务正在运行，并根据需要在 `GoAttack-Api/common/config/` (或相应环境配置) 中配置好数据库连接账号与密码。
 
 GoAttack 启动时将会**自动检测并创建 `goattack` 数据库** (若不存在)，随后自动读取并执行 `GoAttack-Api/common/sql/init.sql` ，完成各关键表结构（如 `plugins`, `dashboard` 等视图）与基础数据的免操作初始化构建。
 

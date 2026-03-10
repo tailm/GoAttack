@@ -2,7 +2,7 @@ package scanweb
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"fmt"
 )
 
@@ -11,7 +11,7 @@ import (
 // portID: 可选参数，如果是从端口扫描触发的，传入对应的 port_id
 func SaveWebFingerprintToDB(taskID int, fingerprint *WebFingerprint, portID *int64) error {
 	// 1. 首先确保资产记录存在
-	assetID, err := mysql.GetOrCreateAsset(fingerprint.IP, "ip")
+	assetID, err := postgres.GetOrCreateAsset(fingerprint.IP, "ip")
 	if err != nil {
 		log.Info("[Web扫描] 创建或获取资产失败: %v", err)
 		return fmt.Errorf("创建或获取资产失败: %v", err)
@@ -24,7 +24,7 @@ func SaveWebFingerprintToDB(taskID int, fingerprint *WebFingerprint, portID *int
 	}
 
 	// 3. 调用MySQL函数保存
-	err = mysql.SaveWebFingerprint(
+	err = postgres.SaveWebFingerprint(
 		taskID,
 		assetID,
 		portID, // 关联的端口ID（可为nil）

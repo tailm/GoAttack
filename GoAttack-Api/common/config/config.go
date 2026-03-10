@@ -5,12 +5,13 @@ import (
 	"strconv"
 )
 
-// MySQL 配置
-var MySQLUser = getEnv("MYSQL_USER", "root")
-var MySQLPassword = getEnv("MYSQL_PASSWORD", "goattack") // 请修改为你的密码
-var MySQLHost = getEnv("MYSQL_HOST", "127.0.0.1")
-var MySQLPort = getEnvInt("MYSQL_PORT", 3306)
-var MySQLDBName = getEnv("MYSQL_DB", "goattack")
+// PostgreSQL 配置
+var PGUser = getEnv("PG_USER", "zwj")
+var PGPassword = getEnv("PG_PASSWORD", "tailm123") // 请修改为你的密码
+var PGHost = getEnv("PG_HOST", "127.0.0.1")
+var PGPort = getEnvInt("PG_PORT", 5432)
+var PGDBName = getEnv("PG_DB", "goattack")
+var PGSSLMode = getEnv("PG_SSLMODE", "disable")
 
 // Redis 配置
 var RedisPassword = getEnv("REDIS_PASSWORD", "")

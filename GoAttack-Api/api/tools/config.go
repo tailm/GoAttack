@@ -1,7 +1,7 @@
 package tools
 
 import (
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,7 +17,7 @@ type ToolConfigUpdateRequest struct {
 
 // GetToolConfigs 获取工具配置
 func GetToolConfigs(c *gin.Context) {
-	configs, err := mysql.GetAllToolConfigs()
+	configs, err := postgres.GetAllToolConfigs()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
@@ -54,7 +54,7 @@ func UpdateToolConfigs(c *gin.Context) {
 		return
 	}
 
-	if err := mysql.UpsertToolConfig("hunter", req.HunterKey, ""); err != nil {
+	if err := postgres.UpsertToolConfig("hunter", req.HunterKey, ""); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
 			"msg":  "保存 Hunter 配置失败: " + err.Error(),
@@ -62,7 +62,7 @@ func UpdateToolConfigs(c *gin.Context) {
 		})
 		return
 	}
-	if err := mysql.UpsertToolConfig("fofa", req.FofaKey, req.FofaEmail); err != nil {
+	if err := postgres.UpsertToolConfig("fofa", req.FofaKey, req.FofaEmail); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
 			"msg":  "保存 FOFA 配置失败: " + err.Error(),
@@ -70,7 +70,7 @@ func UpdateToolConfigs(c *gin.Context) {
 		})
 		return
 	}
-	if err := mysql.UpsertToolConfig("quake", req.QuakeKey, ""); err != nil {
+	if err := postgres.UpsertToolConfig("quake", req.QuakeKey, ""); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
 			"msg":  "保存 Quake 配置失败: " + err.Error(),

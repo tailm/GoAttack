@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	scan_poc "GoAttack/service/scan_poc"
 
 	"github.com/gin-gonic/gin"
@@ -62,7 +62,7 @@ func GetPocTemplateList(c *gin.Context) {
 	order := c.DefaultQuery("order", "desc")
 
 	// 查询数据
-	pocs, total, err := mysql.ListPocTemplates(page, pageSize, filters, sort, order)
+	pocs, total, err := postgres.ListPocTemplates(page, pageSize, filters, sort, order)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
@@ -73,7 +73,7 @@ func GetPocTemplateList(c *gin.Context) {
 	}
 
 	// 转换为响应格式（初始化为空数组，避免返回null）
-	list := make([]mysql.PocTemplateListResponse, 0)
+	list := make([]postgres.PocTemplateListResponse, 0)
 	for _, poc := range pocs {
 		list = append(list, poc.ConvertToListResponse())
 	}
@@ -103,7 +103,7 @@ func GetPocTemplateDetail(c *gin.Context) {
 		return
 	}
 
-	poc, err := mysql.GetPocTemplateByID(id)
+	poc, err := postgres.GetPocTemplateByID(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
@@ -135,7 +135,7 @@ func SearchPocTemplates(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
 
-	pocs, total, err := mysql.SearchPocTemplates(keyword, page, pageSize)
+	pocs, total, err := postgres.SearchPocTemplates(keyword, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
@@ -146,7 +146,7 @@ func SearchPocTemplates(c *gin.Context) {
 	}
 
 	// 转换为响应格式
-	list := make([]mysql.PocTemplateListResponse, 0)
+	list := make([]postgres.PocTemplateListResponse, 0)
 	for _, poc := range pocs {
 		list = append(list, poc.ConvertToListResponse())
 	}
@@ -165,7 +165,7 @@ func SearchPocTemplates(c *gin.Context) {
 
 // GetPocTemplateStats 获取POC统计信息
 func GetPocTemplateStats(c *gin.Context) {
-	stats, err := mysql.GetPocTemplateStats()
+	stats, err := postgres.GetPocTemplateStats()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
@@ -196,7 +196,7 @@ func UpdatePocTemplate(c *gin.Context) {
 	}
 
 	// 获取现有的 POC 模板
-	poc, err := mysql.GetPocTemplateByID(id)
+	poc, err := postgres.GetPocTemplateByID(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
@@ -238,7 +238,7 @@ func UpdatePocTemplate(c *gin.Context) {
 	}
 
 	// 保存更新
-	err = mysql.UpdatePocTemplate(poc)
+	err = postgres.UpdatePocTemplate(poc)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
@@ -268,7 +268,7 @@ func DeletePocTemplate(c *gin.Context) {
 		return
 	}
 
-	err = mysql.DeletePocTemplate(id)
+	err = postgres.DeletePocTemplate(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
@@ -300,7 +300,7 @@ func BatchDeletePocs(c *gin.Context) {
 		return
 	}
 
-	if err := mysql.BatchDeletePocTemplates(req.IDs); err != nil {
+	if err := postgres.BatchDeletePocTemplates(req.IDs); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
 			"msg":  "批量删除失败: " + err.Error(),
@@ -472,9 +472,9 @@ func SaveManualPoc(c *gin.Context) {
 	poc.Category = "manual"
 	poc.FilePath = "manual/" + fileName // 标记为手动导入类别
 
-	if err := mysql.SavePocTemplate(poc); err != nil {
+	if err := postgres.SavePocTemplate(poc); err != nil {
 		// 区分重复导入错误和服务器错误
-		if errors.Is(err, mysql.ErrDuplicatePoc) {
+		if errors.Is(err, postgres.ErrDuplicatePoc) {
 			c.JSON(http.StatusOK, gin.H{
 				"code": 40000,
 				"msg":  err.Error(),
@@ -601,14 +601,14 @@ func VerifyPoc(c *gin.Context) {
 			// 查找对应的 POC ID
 			var pocID int64
 			for _, id := range req.PocIDs {
-				poc, err := mysql.GetPocTemplateByID(int64(id))
+				poc, err := postgres.GetPocTemplateByID(int64(id))
 				if err == nil && poc != nil && poc.TemplateID == result.TemplateID {
 					pocID = poc.ID
 					break
 				}
 			}
 
-			dbResult := &mysql.PocVerifyResult{
+			dbResult := &postgres.PocVerifyResult{
 				Target:        target,
 				PocID:         pocID,
 				TemplateID:    result.TemplateID,
@@ -630,11 +630,11 @@ func VerifyPoc(c *gin.Context) {
 				// 确保更新正确的记录
 				// 在重新验证场景下，通常只验证单个POC
 				dbResult.ID = req.ResultID
-				if err := mysql.UpdatePocVerifyResult(dbResult); err != nil {
+				if err := postgres.UpdatePocVerifyResult(dbResult); err != nil {
 					log.Error("[VerifyPoc] 更新验证结果失败: %v", err)
 				}
 			} else {
-				if err := mysql.SavePocVerifyResult(dbResult); err != nil {
+				if err := postgres.SavePocVerifyResult(dbResult); err != nil {
 					log.Error("[VerifyPoc] 保存验证结果失败: %v", err)
 				}
 			}
@@ -722,7 +722,7 @@ func GetPocVerifyResultList(c *gin.Context) {
 	}
 
 	// 查询数据
-	results, total, err := mysql.ListPocVerifyResults(page, pageSize, filters)
+	results, total, err := postgres.ListPocVerifyResults(page, pageSize, filters)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
@@ -734,7 +734,7 @@ func GetPocVerifyResultList(c *gin.Context) {
 
 	// 初始化为空数组避免返回null
 	if results == nil {
-		results = make([]*mysql.PocVerifyResult, 0)
+		results = make([]*postgres.PocVerifyResult, 0)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -762,7 +762,7 @@ func GetPocVerifyResultDetail(c *gin.Context) {
 		return
 	}
 
-	result, err := mysql.GetPocVerifyResultByID(id)
+	result, err := postgres.GetPocVerifyResultByID(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
@@ -801,7 +801,7 @@ func DeletePocVerifyResult(c *gin.Context) {
 		return
 	}
 
-	err = mysql.DeletePocVerifyResult(id)
+	err = postgres.DeletePocVerifyResult(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
@@ -833,7 +833,7 @@ func BatchDeletePocVerifyResults(c *gin.Context) {
 		return
 	}
 
-	if err := mysql.BatchDeletePocVerifyResults(req.IDs); err != nil {
+	if err := postgres.BatchDeletePocVerifyResults(req.IDs); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
 			"msg":  "批量删除失败: " + err.Error(),

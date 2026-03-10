@@ -1,7 +1,7 @@
 package setting
 
 import (
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"net"
 
 	"github.com/gin-gonic/gin"
@@ -16,7 +16,7 @@ func RegisterRoutes(r *gin.RouterGroup) {
 
 // GetSettings 获取系统设置
 func GetSettings(c *gin.Context) {
-	settings, err := mysql.GetSettings()
+	settings, err := postgres.GetSettings()
 	if err != nil {
 		c.JSON(500, gin.H{
 			"code": 50000,
@@ -81,7 +81,7 @@ func UpdateSettings(c *gin.Context) {
 	}
 
 	// 构建设置结构体
-	settings := &mysql.SystemSettings{
+	settings := &postgres.SystemSettings{
 		ID:                  1, // 总是更新 ID=1
 		NetworkCard:         req.NetworkCard,
 		Concurrency:         req.Concurrency,
@@ -96,7 +96,7 @@ func UpdateSettings(c *gin.Context) {
 		ReverseHTTPServer:   req.ReverseHTTPServer,
 	}
 
-	err := mysql.UpdateSettings(settings)
+	err := postgres.UpdateSettings(settings)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"code": 50000,

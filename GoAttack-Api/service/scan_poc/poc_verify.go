@@ -2,7 +2,7 @@ package service
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"GoAttack/service/common"
 	"fmt"
 	"strings"
@@ -78,10 +78,10 @@ func (pv *PocVerifier) Verify(req VerifyRequest) (*VerifyResponse, error) {
 
 	// 查询 POC 模板信息并收集模板文件路径
 	var templatePaths []string
-	var pocs []*mysql.PocTemplate
+	var pocs []*postgres.PocTemplate
 
 	for _, pocID := range req.PocIDs {
-		poc, err := mysql.GetPocTemplateByID(int64(pocID))
+		poc, err := postgres.GetPocTemplateByID(int64(pocID))
 		if err != nil {
 			log.Warn("[PocVerifier] Warning: Failed to get POC %d: %v", pocID, err)
 			continue

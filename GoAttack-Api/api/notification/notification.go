@@ -2,7 +2,7 @@ package notification
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"database/sql"
 	"strconv"
 	"time"
@@ -48,7 +48,7 @@ func GetUnreadNotification(c *gin.Context) {
 	}
 
 	// 查询该用户任务下的漏洞数量
-	summary, err := mysql.GetVulnNotificationSummary(username.(string))
+	summary, err := postgres.GetVulnNotificationSummary(username.(string))
 	if err != nil {
 		log.Info("[Notification] 获取摘要失败: %v", err)
 		c.JSON(500, gin.H{"code": 50000, "msg": "获取通知摘要失败", "data": nil})
@@ -72,7 +72,7 @@ func GetNotificationList(c *gin.Context) {
 		pageSize = 20
 	}
 
-	rows, err := mysql.GetRecentVulnNotifications(username.(string), pageSize)
+	rows, err := postgres.GetRecentVulnNotifications(username.(string), pageSize)
 	if err != nil {
 		log.Info("[Notification] 获取列表失败: %v", err)
 		c.JSON(500, gin.H{"code": 50000, "msg": "获取通知列表失败", "data": nil})
@@ -113,7 +113,7 @@ func MarkAllRead(c *gin.Context) {
 		return
 	}
 
-	err := mysql.MarkAllVulnNotificationsRead(username.(string))
+	err := postgres.MarkAllVulnNotificationsRead(username.(string))
 	if err != nil {
 		log.Info("[Notification] 标记已读失败: %v", err)
 		c.JSON(500, gin.H{"code": 50000, "msg": "标记已读失败", "data": nil})
@@ -131,7 +131,7 @@ func ClearNotifications(c *gin.Context) {
 		return
 	}
 
-	err := mysql.ClearVulnNotifications(username.(string))
+	err := postgres.ClearVulnNotifications(username.(string))
 	if err != nil {
 		log.Info("[Notification] 清空通知失败: %v", err)
 		c.JSON(500, gin.H{"code": 50000, "msg": "清空通知失败", "data": nil})

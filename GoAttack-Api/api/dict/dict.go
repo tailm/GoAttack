@@ -2,7 +2,7 @@ package dict
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"bufio"
 	"bytes"
 	"fmt"
@@ -85,14 +85,14 @@ func scanAndSyncDir(dirPath string, dictType string) error {
 
 		// Check DB to avoid recompiling lines if size is same
 		var linesCnt int64 = 0
-		existing, err := mysql.GetDictByName(name)
+		existing, err := postgres.GetDictByName(name)
 		if err == nil && existing.Size == size {
 			linesCnt = existing.LinesCnt
 		} else {
 			linesCnt = countLines(path)
 		}
 
-		d := mysql.Dict{
+		d := postgres.Dict{
 			Name:     name,
 			Type:     dictType,
 			Category: category,
@@ -100,7 +100,7 @@ func scanAndSyncDir(dirPath string, dictType string) error {
 			LinesCnt: linesCnt,
 			Path:     path,
 		}
-		err = mysql.UpsertDict(d)
+		err = postgres.UpsertDict(d)
 		if err != nil {
 			log.Warn("Upsert dict error: %v", err)
 		}
@@ -132,13 +132,13 @@ func GetDicts(c *gin.Context) {
 	typeParam := c.Query("type")
 	categoryParam := c.Query("category")
 
-	dicts, err := mysql.GetAllDicts()
+	dicts, err := postgres.GetAllDicts()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "msg": err.Error(), "data": nil})
 		return
 	}
 
-	var result []mysql.Dict
+	var result []postgres.Dict
 	for _, d := range dicts {
 		if typeParam != "" && d.Type != typeParam {
 			continue
@@ -165,7 +165,7 @@ func ViewDict(c *gin.Context) {
 		return
 	}
 
-	d, err := mysql.GetDictById(id)
+	d, err := postgres.GetDictById(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "msg": "dict not found"})
 		return
@@ -205,7 +205,7 @@ func DownloadDict(c *gin.Context) {
 		return
 	}
 
-	d, err := mysql.GetDictById(id)
+	d, err := postgres.GetDictById(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "msg": "dict not found"})
 		return
@@ -251,12 +251,12 @@ func DeleteDict(c *gin.Context) {
 		return
 	}
 
-	d, err := mysql.GetDictById(id)
+	d, err := postgres.GetDictById(id)
 	if err == nil {
 		os.Remove(d.Path)
 	}
 
-	mysql.DeleteDictById(id)
+	postgres.DeleteDictById(id)
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"msg":  "Delete success",

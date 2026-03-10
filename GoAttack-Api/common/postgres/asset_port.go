@@ -1,9 +1,10 @@
-package mysql
+package postgres
 
 import (
 	"GoAttack/model"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 )
 
 // ============================================
@@ -19,22 +20,22 @@ func SaveAssetPort(port *model.AssetPort) error {
 		service_name, service_product, service_version, service_extra_info,
 		service_hostname, service_os_type, service_device_type, service_confidence,
 		banner, fingerprint_method, raw_response, cpes, scripts
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	ON DUPLICATE KEY UPDATE
-		state = VALUES(state),
-		service_name = VALUES(service_name),
-		service_product = VALUES(service_product),
-		service_version = VALUES(service_version),
-		service_extra_info = VALUES(service_extra_info),
-		service_hostname = VALUES(service_hostname),
-		service_os_type = VALUES(service_os_type),
-		service_device_type = VALUES(service_device_type),
-		service_confidence = VALUES(service_confidence),
-		banner = VALUES(banner),
-		fingerprint_method = VALUES(fingerprint_method),
-		raw_response = VALUES(raw_response),
-		cpes = VALUES(cpes),
-		scripts = VALUES(scripts),
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+	ON CONFLICT (ip, port, task_id) DO UPDATE SET
+		state = EXCLUDED.state,
+		service_name = EXCLUDED.service_name,
+		service_product = EXCLUDED.service_product,
+		service_version = EXCLUDED.service_version,
+		service_extra_info = EXCLUDED.service_extra_info,
+		service_hostname = EXCLUDED.service_hostname,
+		service_os_type = EXCLUDED.service_os_type,
+		service_device_type = EXCLUDED.service_device_type,
+		service_confidence = EXCLUDED.service_confidence,
+		banner = EXCLUDED.banner,
+		fingerprint_method = EXCLUDED.fingerprint_method,
+		raw_response = EXCLUDED.raw_response,
+		cpes = EXCLUDED.cpes,
+		scripts = EXCLUDED.scripts,
 		last_seen = CURRENT_TIMESTAMP
 	`
 
@@ -70,7 +71,7 @@ func GetAssetPortsByTaskID(taskID int) (*sql.Rows, error) {
 		banner, fingerprint_method, raw_response, cpes, scripts,
 		discovered_at, last_seen
 	FROM asset_port
-	WHERE task_id = ?
+	WHERE task_id = $1
 	ORDER BY ip, port`
 
 	return DB.Query(query, taskID)
@@ -86,7 +87,7 @@ func GetAssetPortsByIP(ip string) (*sql.Rows, error) {
 		banner, fingerprint_method, raw_response, cpes, scripts,
 		discovered_at, last_seen
 	FROM asset_port
-	WHERE ip = ? AND state = 'open'
+	WHERE ip = $1 AND state = 'open'
 	ORDER BY last_seen DESC, port`
 
 	return DB.Query(query, ip)
@@ -102,7 +103,7 @@ func GetAssetPortByID(id int64) (*model.AssetPort, error) {
 		banner, fingerprint_method, raw_response, cpes, scripts,
 		discovered_at, last_seen
 	FROM asset_port
-	WHERE id = ?`
+	WHERE id = $1`
 
 	port := &model.AssetPort{}
 	var cpesJSON, scriptsJSON sql.NullString
@@ -146,7 +147,7 @@ func GetAssetPortSummary(taskID int) (*model.AssetPortSummary, error) {
 		SUM(CASE WHEN state = 'open' THEN 1 ELSE 0 END) as open_ports,
 		MAX(discovered_at) as latest_discovery
 	FROM asset_port
-	WHERE task_id = ?`
+	WHERE task_id = $1`
 
 	err := DB.QueryRow(countQuery, taskID).Scan(
 		&summary.TotalPorts,
@@ -161,7 +162,7 @@ func GetAssetPortSummary(taskID int) (*model.AssetPortSummary, error) {
 	serviceQuery := `
 	SELECT service_name, COUNT(*) as count
 	FROM asset_port
-	WHERE task_id = ? AND service_name IS NOT NULL AND service_name != ''
+	WHERE task_id = $1 AND service_name IS NOT NULL AND service_name != ''
 	GROUP BY service_name`
 
 	rows, err := DB.Query(serviceQuery, taskID)
@@ -182,7 +183,7 @@ func GetAssetPortSummary(taskID int) (*model.AssetPortSummary, error) {
 	portQuery := `
 	SELECT port, COUNT(*) as count
 	FROM asset_port
-	WHERE task_id = ? AND state = 'open'
+	WHERE task_id = $1 AND state = 'open'
 	GROUP BY port
 	ORDER BY count DESC
 	LIMIT 10`
@@ -204,7 +205,7 @@ func GetAssetPortSummary(taskID int) (*model.AssetPortSummary, error) {
 	topServiceQuery := `
 	SELECT service_name, COUNT(*) as count
 	FROM asset_port
-	WHERE task_id = ? AND service_name IS NOT NULL AND service_name != ''
+	WHERE task_id = $1 AND service_name IS NOT NULL AND service_name != ''
 	GROUP BY service_name
 	ORDER BY count DESC
 	LIMIT 10`
@@ -227,13 +228,13 @@ func GetAssetPortSummary(taskID int) (*model.AssetPortSummary, error) {
 
 // DeleteAssetPortsByTaskID 删除任务的所有端口记录
 func DeleteAssetPortsByTaskID(taskID int) error {
-	_, err := DB.Exec("DELETE FROM asset_port WHERE task_id = ?", taskID)
+	_, err := DB.Exec("DELETE FROM asset_port WHERE task_id = $1", taskID)
 	return err
 }
 
 // DeleteAssetPortByID 删除指定端口记录
 func DeleteAssetPortByID(id int64) error {
-	_, err := DB.Exec("DELETE FROM asset_port WHERE id = ?", id)
+	_, err := DB.Exec("DELETE FROM asset_port WHERE id = $1", id)
 	return err
 }
 
@@ -241,35 +242,41 @@ func DeleteAssetPortByID(id int64) error {
 func SearchAssetPorts(filters map[string]interface{}, page, pageSize int) (*sql.Rows, int, error) {
 	whereClause := "WHERE 1=1"
 	args := make([]interface{}, 0)
+	argIndex := 1
 
 	// IP筛选
 	if ip, ok := filters["ip"].(string); ok && ip != "" {
-		whereClause += " AND ip = ?"
+		whereClause += fmt.Sprintf(" AND ip = $%d", argIndex)
 		args = append(args, ip)
+		argIndex++
 	}
 
 	// 端口筛选
 	if port, ok := filters["port"].(int); ok && port > 0 {
-		whereClause += " AND port = ?"
+		whereClause += fmt.Sprintf(" AND port = $%d", argIndex)
 		args = append(args, port)
+		argIndex++
 	}
 
 	// 服务筛选
 	if service, ok := filters["service"].(string); ok && service != "" {
-		whereClause += " AND service_name = ?"
+		whereClause += fmt.Sprintf(" AND service_name = $%d", argIndex)
 		args = append(args, service)
+		argIndex++
 	}
 
 	// 状态筛选
 	if state, ok := filters["state"].(string); ok && state != "" {
-		whereClause += " AND state = ?"
+		whereClause += fmt.Sprintf(" AND state = $%d", argIndex)
 		args = append(args, state)
+		argIndex++
 	}
 
 	// 任务ID筛选
 	if taskID, ok := filters["task_id"].(int); ok && taskID > 0 {
-		whereClause += " AND task_id = ?"
+		whereClause += fmt.Sprintf(" AND task_id = $%d", argIndex)
 		args = append(args, taskID)
+		argIndex++
 	}
 
 	// 查询总数
@@ -288,7 +295,7 @@ func SearchAssetPorts(filters map[string]interface{}, page, pageSize int) (*sql.
 		service_hostname, service_os_type, service_device_type, service_confidence,
 		banner, fingerprint_method, raw_response, cpes, scripts,
 		discovered_at, last_seen
-	FROM asset_port ` + whereClause + ` ORDER BY last_seen DESC LIMIT ? OFFSET ?`
+	FROM asset_port ` + whereClause + fmt.Sprintf(" ORDER BY last_seen DESC LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 	args = append(args, pageSize, offset)
 
 	rows, err := DB.Query(query, args...)

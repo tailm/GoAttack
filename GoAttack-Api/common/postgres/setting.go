@@ -1,4 +1,4 @@
-package mysql
+package postgres
 
 import (
 	"database/sql"
@@ -56,18 +56,18 @@ func GetSettings() (*SystemSettings, error) {
 func UpdateSettings(settings *SystemSettings) error {
 	query := `
 	UPDATE system_settings SET
-		network_card = ?,
-		concurrency = ?,
-		timeout = ?,
-		retries = ?,
-		proxy_type = ?,
-		proxy_url = ?,
-		reverse_dnslog_domain = ?,
-		reverse_dnslog_api = ?,
-		reverse_rmi_server = ?,
-		reverse_ldap_server = ?,
-		reverse_http_server = ?,
-		updated_at = NOW()
+		network_card = $1,
+		concurrency = $2,
+		timeout = $3,
+		retries = $4,
+		proxy_type = $5,
+		proxy_url = $6,
+		reverse_dnslog_domain = $7,
+		reverse_dnslog_api = $8,
+		reverse_rmi_server = $9,
+		reverse_ldap_server = $10,
+		reverse_http_server = $11,
+		updated_at = CURRENT_TIMESTAMP
 	WHERE id = 1`
 
 	_, err := DB.Exec(query,

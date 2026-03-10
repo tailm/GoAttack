@@ -1,9 +1,10 @@
-package mysql
+package postgres
 
 import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -42,23 +43,18 @@ func SavePocVerifyResult(result *PocVerifyResult) error {
 		INSERT INTO poc_verify_result (
 			target, poc_id, template_id, template_name, matched, severity, description,
 			request, response, matched_at, extracted_data, error, verified_by, verified_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id
 	`
 
-	res, err := DB.Exec(query,
+	err = DB.QueryRow(query,
 		result.Target, result.PocID, result.TemplateID, result.TemplateName,
 		result.Matched, result.Severity, result.Description,
 		result.Request, result.Response, result.MatchedAt,
 		extractedDataJSON, result.Error, result.VerifiedBy, result.VerifiedAt,
-	)
+	).Scan(&result.ID)
 
 	if err != nil {
 		return fmt.Errorf("保存验证结果失败: %v", err)
-	}
-
-	id, err := res.LastInsertId()
-	if err == nil {
-		result.ID = id
 	}
 
 	return nil
@@ -71,7 +67,7 @@ func GetPocVerifyResultByID(id int64) (*PocVerifyResult, error) {
 			id, target, poc_id, template_id, template_name, matched, severity, description,
 			request, response, matched_at, extracted_data, error, verified_by, verified_at
 		FROM poc_verify_result
-		WHERE id = ?
+		WHERE id = $1
 	`
 
 	result := &PocVerifyResult{}
@@ -106,30 +102,36 @@ func ListPocVerifyResults(page, pageSize int, filters map[string]interface{}) ([
 	// 构建查询条件
 	where := "WHERE 1=1"
 	args := make([]interface{}, 0)
+	argIndex := 1
 
 	if target, ok := filters["target"].(string); ok && target != "" {
-		where += " AND target LIKE ?"
+		where += fmt.Sprintf(" AND target LIKE $%d", argIndex)
 		args = append(args, "%"+target+"%")
+		argIndex++
 	}
 
 	if pocID, ok := filters["poc_id"].(int64); ok && pocID > 0 {
-		where += " AND poc_id = ?"
+		where += fmt.Sprintf(" AND poc_id = $%d", argIndex)
 		args = append(args, pocID)
+		argIndex++
 	}
 
 	if templateID, ok := filters["template_id"].(string); ok && templateID != "" {
-		where += " AND template_id = ?"
+		where += fmt.Sprintf(" AND template_id = $%d", argIndex)
 		args = append(args, templateID)
+		argIndex++
 	}
 
 	if matched, ok := filters["matched"].(bool); ok {
-		where += " AND matched = ?"
+		where += fmt.Sprintf(" AND matched = $%d", argIndex)
 		args = append(args, matched)
+		argIndex++
 	}
 
 	if severity, ok := filters["severity"].(string); ok && severity != "" {
-		where += " AND severity = ?"
+		where += fmt.Sprintf(" AND severity = $%d", argIndex)
 		args = append(args, severity)
+		argIndex++
 	}
 
 	// 查询总数
@@ -147,10 +149,10 @@ func ListPocVerifyResults(page, pageSize int, filters map[string]interface{}) ([
 			id, target, poc_id, template_id, template_name, matched, severity, description,
 			request, response, matched_at, extracted_data, error, verified_by, verified_at
 		FROM poc_verify_result
-	` + where + `
+	` + where + fmt.Sprintf(`
 		ORDER BY verified_at DESC
-		LIMIT ? OFFSET ?
-	`
+		LIMIT $%d OFFSET $%d
+	`, argIndex, argIndex+1)
 
 	args = append(args, pageSize, offset)
 	rows, err := DB.Query(query, args...)
@@ -189,7 +191,7 @@ func ListPocVerifyResults(page, pageSize int, filters map[string]interface{}) ([
 
 // DeletePocVerifyResult 删除验证结果
 func DeletePocVerifyResult(id int64) error {
-	query := "DELETE FROM poc_verify_result WHERE id = ?"
+	query := "DELETE FROM poc_verify_result WHERE id = $1"
 	_, err := DB.Exec(query, id)
 	if err != nil {
 		return fmt.Errorf("删除验证结果失败: %v", err)
@@ -203,16 +205,14 @@ func BatchDeletePocVerifyResults(ids []int64) error {
 		return nil
 	}
 
-	query := "DELETE FROM poc_verify_result WHERE id IN ("
+	placeholders := make([]string, len(ids))
 	args := make([]interface{}, len(ids))
 	for i, id := range ids {
-		if i > 0 {
-			query += ","
-		}
-		query += "?"
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
 		args[i] = id
 	}
-	query += ")"
+
+	query := "DELETE FROM poc_verify_result WHERE id IN (" + strings.Join(placeholders, ",") + ")"
 
 	_, err := DB.Exec(query, args...)
 	if err != nil {
@@ -235,9 +235,9 @@ func UpdatePocVerifyResult(result *PocVerifyResult) error {
 
 	query := `
 		UPDATE poc_verify_result SET
-			target = ?, poc_id = ?, template_id = ?, template_name = ?, matched = ?, severity = ?, description = ?,
-			request = ?, response = ?, matched_at = ?, extracted_data = ?, error = ?, verified_by = ?, verified_at = ?
-		WHERE id = ?
+			target = $1, poc_id = $2, template_id = $3, template_name = $4, matched = $5, severity = $6, description = $7,
+			request = $8, response = $9, matched_at = $10, extracted_data = $11, error = $12, verified_by = $13, verified_at = $14
+		WHERE id = $15
 	`
 
 	_, err = DB.Exec(query,

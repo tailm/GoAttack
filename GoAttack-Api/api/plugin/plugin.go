@@ -2,7 +2,7 @@ package plugin
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -75,7 +75,7 @@ func syncLocalPlugins() error {
 			executable := filepath.Join(pluginPath, pluginName+extension)
 			if _, err := os.Stat(executable); err == nil {
 				// 文件存在，插入或更新到数据库
-				p := mysql.Plugin{
+				p := postgres.Plugin{
 					Name:        pluginName,
 					Version:     version,
 					Type:        pluginType,
@@ -83,7 +83,7 @@ func syncLocalPlugins() error {
 					Description: description,
 					Path:        executable,
 				}
-				err := mysql.UpsertPlugin(p)
+				err := postgres.UpsertPlugin(p)
 				if err != nil {
 					log.Warn("Failed to upsert plugin %s: %v", pluginName, err)
 				} else {
@@ -104,7 +104,7 @@ func GetPlugins(c *gin.Context) {
 	pluginType := c.Query("type")
 	// 这里可以加上分页，目前直接查所有
 
-	plugins, err := mysql.GetAllPlugins()
+	plugins, err := postgres.GetAllPlugins()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
@@ -115,7 +115,7 @@ func GetPlugins(c *gin.Context) {
 	}
 
 	// 过滤
-	var filtered []mysql.Plugin
+	var filtered []postgres.Plugin
 	for _, p := range plugins {
 		if name != "" && !strings.Contains(strings.ToLower(p.Name), strings.ToLower(name)) {
 			continue
@@ -147,7 +147,7 @@ func UpdatePluginStatus(c *gin.Context) {
 		return
 	}
 
-	err := mysql.UpdatePluginStatus(req.ID, req.Enabled)
+	err := postgres.UpdatePluginStatus(req.ID, req.Enabled)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,
@@ -176,7 +176,7 @@ func UpdatePluginConfig(c *gin.Context) {
 		return
 	}
 
-	err := mysql.UpdatePluginConfig(req.ID, req.Config)
+	err := postgres.UpdatePluginConfig(req.ID, req.Config)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code": 50000,

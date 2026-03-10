@@ -2,7 +2,7 @@ package service
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	redisdb "GoAttack/common/redis"
 	"GoAttack/model"
 	servicecommon "GoAttack/service/common"
@@ -52,7 +52,7 @@ type webFingerprintRecord struct {
 
 type pocCandidate struct {
 	ID         int64
-	Template   *mysql.PocTemplate
+	Template   *postgres.PocTemplate
 	Haystack   string
 	HasHTTP    bool
 	TemplateID string
@@ -66,7 +66,7 @@ func ExecuteFullScan(ctx context.Context, taskID int, target string, options str
 	opts := parseFullScanOptions(options)
 
 	// Remove old vulnerabilities for this task before running full scan.
-	if err := mysql.DeleteVulnerabilitiesByTaskID(taskID); err != nil {
+	if err := postgres.DeleteVulnerabilitiesByTaskID(taskID); err != nil {
 		log.Info("[FullScan] Warning: failed to clear vulnerabilities for task #%d: %v", taskID, err)
 	}
 
@@ -189,7 +189,7 @@ func ExecuteFullScan(ctx context.Context, taskID int, target string, options str
 			}
 		}
 
-		rows, err := mysql.GetHTTPPortsByTaskID(taskID)
+		rows, err := postgres.GetHTTPPortsByTaskID(taskID)
 		if err == nil {
 			defer rows.Close()
 			for rows.Next() {
@@ -298,7 +298,7 @@ func ExecuteFullScan(ctx context.Context, taskID int, target string, options str
 	redisProgress.Message = "Full scan completed"
 	redisdb.UpdateTaskProgress(taskID, redisProgress)
 
-	if err := mysql.UpdateTaskProgress(taskID, "completed", 100); err != nil {
+	if err := postgres.UpdateTaskProgress(taskID, "completed", 100); err != nil {
 		return fmt.Errorf("update task status failed: %v", err)
 	}
 
@@ -319,7 +319,7 @@ func handleFullScanError(taskID int, err error, message string, redisProgress *r
 	redisProgress.Status = status
 	redisProgress.Message = fmt.Sprintf("%s: %v", message, err)
 	redisdb.UpdateTaskProgress(taskID, *redisProgress)
-	_ = mysql.UpdateTaskProgress(taskID, status, redisProgress.Progress)
+	_ = postgres.UpdateTaskProgress(taskID, status, redisProgress.Progress)
 	return err
 }
 
@@ -449,7 +449,7 @@ func saveAliveScanResults(taskID int, results []scanhost.ScanResult) int {
 			assetType = "domain"
 		}
 
-		assetID, err := mysql.CreateOrUpdateAsset(assetValue, assetType, result.HostAlive)
+		assetID, err := postgres.CreateOrUpdateAsset(assetValue, assetType, result.HostAlive)
 		if err != nil {
 			log.Info("[FullScan] Save asset failed (%s): %v", assetValue, err)
 			continue
@@ -473,7 +473,7 @@ func saveAliveScanResults(taskID int, results []scanhost.ScanResult) int {
 		}
 
 		resultJSON, _ := json.Marshal(detail)
-		if err := mysql.SaveAssetScanResult(taskID, assetID, "alive", status, string(resultJSON)); err != nil {
+		if err := postgres.SaveAssetScanResult(taskID, assetID, "alive", status, string(resultJSON)); err != nil {
 			log.Info("[FullScan] Save alive result failed: %v", err)
 		}
 	}
@@ -515,7 +515,7 @@ func savePortScanResults(taskID int, results []scanport.PortScanServiceResult) (
 			totalOpenPorts += result.ScanResult.OpenPorts
 		}
 
-		assetID, err := mysql.CreateOrUpdateAsset(assetValue, assetType, isAlive)
+		assetID, err := postgres.CreateOrUpdateAsset(assetValue, assetType, isAlive)
 		if err != nil {
 			log.Info("[FullScan] Save asset failed (%s): %v", assetValue, err)
 			continue
@@ -596,7 +596,7 @@ func savePortScanResults(taskID int, results []scanport.PortScanServiceResult) (
 			detail["error"] = result.Error.Error()
 		}
 
-		if err := mysql.SaveAssetScanResult(taskID, assetID, "port", status, string(resultJSON)); err != nil {
+		if err := postgres.SaveAssetScanResult(taskID, assetID, "port", status, string(resultJSON)); err != nil {
 			log.Info("[FullScan] Save port scan result failed: %v", err)
 		}
 
@@ -642,7 +642,7 @@ func savePortScanResults(taskID int, results []scanport.PortScanServiceResult) (
 				}
 			}
 
-			if err := mysql.SaveAssetPort(assetPort); err != nil {
+			if err := postgres.SaveAssetPort(assetPort); err != nil {
 				log.Info("[FullScan] Save asset port failed (%s:%d): %v", result.ScanResult.IP, port.Port, err)
 			}
 		}
@@ -678,18 +678,18 @@ func extractTargetsFromPortResults(results []scanport.PortScanServiceResult) []*
 	return targets
 }
 
-func buildPocTargetsFromFingerprints(taskID int) (map[string][]int, map[string]*mysql.PocTemplate, error) {
+func buildPocTargetsFromFingerprints(taskID int) (map[string][]int, map[string]*postgres.PocTemplate, error) {
 	fingerprints, err := loadWebFingerprints(taskID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pocs, err := mysql.GetActivePocTemplates()
+	pocs, err := postgres.GetActivePocTemplates()
 	if err != nil {
 		return nil, nil, err
 	}
 	if len(pocs) == 0 || len(fingerprints) == 0 {
-		return map[string][]int{}, map[string]*mysql.PocTemplate{}, nil
+		return map[string][]int{}, map[string]*postgres.PocTemplate{}, nil
 	}
 
 	candidates, templateByID := buildPocCandidates(pocs)
@@ -741,7 +741,7 @@ func buildPocTargetsFromFingerprints(taskID int) (map[string][]int, map[string]*
 }
 
 func loadWebFingerprints(taskID int) ([]webFingerprintRecord, error) {
-	rows, err := mysql.GetWebFingerprintsByTaskID(taskID)
+	rows, err := postgres.GetWebFingerprintsByTaskID(taskID)
 	if err != nil {
 		return nil, err
 	}
@@ -798,9 +798,9 @@ func loadWebFingerprints(taskID int) ([]webFingerprintRecord, error) {
 	return records, nil
 }
 
-func buildPocCandidates(pocs []*mysql.PocTemplate) ([]pocCandidate, map[string]*mysql.PocTemplate) {
+func buildPocCandidates(pocs []*postgres.PocTemplate) ([]pocCandidate, map[string]*postgres.PocTemplate) {
 	candidates := make([]pocCandidate, 0)
-	templateByID := make(map[string]*mysql.PocTemplate)
+	templateByID := make(map[string]*postgres.PocTemplate)
 
 	for _, poc := range pocs {
 		if poc == nil || !poc.IsActive {
@@ -966,7 +966,7 @@ func buildURL(protocol, ip string, port int) string {
 	return fmt.Sprintf("%s://%s:%d", scheme, ip, port)
 }
 
-func runPocVerification(ctx context.Context, taskID int, targets map[string][]int, templateByID map[string]*mysql.PocTemplate, redisProgress *redisdb.TaskProgress) error {
+func runPocVerification(ctx context.Context, taskID int, targets map[string][]int, templateByID map[string]*postgres.PocTemplate, redisProgress *redisdb.TaskProgress) error {
 	if len(targets) == 0 {
 		return nil
 	}
@@ -983,11 +983,11 @@ func runPocVerification(ctx context.Context, taskID int, targets map[string][]in
 	defer verifier.Close()
 
 	// Build template lookup by ID for saving results
-	templateByIDInt := make(map[int64]*mysql.PocTemplate)
+	templateByIDInt := make(map[int64]*postgres.PocTemplate)
 	for _, tpl := range templateByID {
 		templateByIDInt[tpl.ID] = tpl
 	}
-	templateByTemplateID := make(map[string]*mysql.PocTemplate)
+	templateByTemplateID := make(map[string]*postgres.PocTemplate)
 	for _, tpl := range templateByID {
 		templateByTemplateID[tpl.TemplateID] = tpl
 	}
@@ -1044,7 +1044,7 @@ func runPocVerification(ctx context.Context, taskID int, targets map[string][]in
 				result.Description = template.Description
 			}
 
-			dbResult := &mysql.PocVerifyResult{
+			dbResult := &postgres.PocVerifyResult{
 				Target:        target,
 				PocID:         pocID,
 				TemplateID:    result.TemplateID,
@@ -1060,7 +1060,7 @@ func runPocVerification(ctx context.Context, taskID int, targets map[string][]in
 				VerifiedBy:    "system",
 				VerifiedAt:    time.Now(),
 			}
-			if err := mysql.SavePocVerifyResult(dbResult); err != nil {
+			if err := postgres.SavePocVerifyResult(dbResult); err != nil {
 				log.Info("[FullScan] Save POC verify result failed: %v", err)
 			}
 
@@ -1080,7 +1080,7 @@ func runPocVerification(ctx context.Context, taskID int, targets map[string][]in
 	return nil
 }
 
-func saveVulnerabilityFromPocResult(taskID int, target string, result scanpoc.VerifyResult, template *mysql.PocTemplate) error {
+func saveVulnerabilityFromPocResult(taskID int, target string, result scanpoc.VerifyResult, template *postgres.PocTemplate) error {
 	host, port, scheme := parseTargetHostPort(target)
 	ip := ""
 	if host != "" && net.ParseIP(host) != nil {
@@ -1125,7 +1125,7 @@ func saveVulnerabilityFromPocResult(taskID int, target string, result scanpoc.Ve
 		"metadata":          template.Metadata,
 	}
 
-	return mysql.SaveVulnerability(vuln)
+	return postgres.SaveVulnerability(vuln)
 }
 
 func parseTargetHostPort(target string) (string, int, string) {
@@ -1223,7 +1223,7 @@ func runUDPScan(ctx context.Context, taskID int, aliveTargets []*servicecommon.T
 
 			// 保存 UDP 开放端口到 asset_port 表
 			for _, p := range result.Ports {
-				assetID, err := mysql.GetOrCreateAsset(targetIP, "ip")
+				assetID, err := postgres.GetOrCreateAsset(targetIP, "ip")
 				if err != nil {
 					log.Info("[UDP扫描] 创建资产失败 %s: %v", targetIP, err)
 					continue
@@ -1243,7 +1243,7 @@ func runUDPScan(ctx context.Context, taskID int, aliveTargets []*servicecommon.T
 					ServiceHostname:   p.Service.Hostname,
 					ServiceConfidence: p.Service.Confidence,
 				}
-				if err := mysql.SaveAssetPort(assetPort); err != nil {
+				if err := postgres.SaveAssetPort(assetPort); err != nil {
 					log.Info("[UDP扫描] 保存端口失败 %s:%d: %v", targetIP, p.Port, err)
 				}
 			}

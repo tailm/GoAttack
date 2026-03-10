@@ -2,7 +2,7 @@ package scanweb
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"GoAttack/service/common"
 	"context"
 	"database/sql"
@@ -26,7 +26,7 @@ func ScanWebFingerprintsFromPorts(ctx context.Context, taskID int, targets []*co
 	}
 
 	// 2. 查询所有HTTP/HTTPS端口
-	rows, err := mysql.GetHTTPPortsByTaskID(taskID)
+	rows, err := postgres.GetHTTPPortsByTaskID(taskID)
 	if err != nil {
 		return fmt.Errorf("查询HTTP端口失败: %v", err)
 	}
@@ -170,7 +170,7 @@ func ScanWebFingerprintsFromPorts(ctx context.Context, taskID int, targets []*co
 func ScanGobusterDiscoveredURLs(ctx context.Context, taskID int) error {
 	log.Info("[Web扫描] 开始对 Gobuster 发现路径进行指纹识别，任务 #%d", taskID)
 
-	rows, err := mysql.GetWebFingerprintsByTaskID(taskID)
+	rows, err := postgres.GetWebFingerprintsByTaskID(taskID)
 	if err != nil {
 		return fmt.Errorf("读取Gobuster指纹记录失败: %v", err)
 	}
@@ -246,7 +246,7 @@ func ScanGobusterDiscoveredURLs(ctx context.Context, taskID int) error {
 
 // GetWebFingerprintsForTask 获取任务的所有Web指纹结果
 func GetWebFingerprintsForTask(taskID int) ([]WebFingerprint, error) {
-	rows, err := mysql.GetWebFingerprintsByTaskID(taskID)
+	rows, err := postgres.GetWebFingerprintsByTaskID(taskID)
 	if err != nil {
 		return nil, fmt.Errorf("查询Web指纹失败: %v", err)
 	}

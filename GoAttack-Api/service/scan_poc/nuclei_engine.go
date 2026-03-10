@@ -2,7 +2,7 @@ package service
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -256,9 +256,9 @@ func (ne *NucleiEngine) getInteractshOpts() nuclei.InteractshOpts {
 	var interactshURL string
 
 	// 读取系统配置，获取自定义 DNSLog 域名
-	systemSettings, err := mysql.GetSettings()
+	systemSettings, err := postgres.GetSettings()
 	if err != nil {
-		fmt.Printf("[DEBUG] mysql.GetSettings error: %v\n", err)
+		fmt.Printf("[DEBUG] postgres.GetSettings error: %v\n", err)
 		interactshURL = "oast.live"
 		log.Info("[NucleiEngine] Using default Interactsh server (due to db error): %s", interactshURL)
 	} else if systemSettings.ReverseDnslogDomain != "" {
@@ -287,7 +287,7 @@ func (ne *NucleiEngine) getInteractshOpts() nuclei.InteractshOpts {
 }
 
 // VerifyWithTemplatePaths 使用指定的模板文件路径验证目标
-func (ne *NucleiEngine) VerifyWithTemplatePaths(target string, templatePaths []string, pocs []*mysql.PocTemplate, variables map[string]string) ([]VerifyResult, error) {
+func (ne *NucleiEngine) VerifyWithTemplatePaths(target string, templatePaths []string, pocs []*postgres.PocTemplate, variables map[string]string) ([]VerifyResult, error) {
 	ne.mu.Lock()
 	defer ne.mu.Unlock()
 
@@ -391,7 +391,7 @@ func (ne *NucleiEngine) VerifyWithTemplatePaths(target string, templatePaths []s
 	ne.engine = engine
 
 	// 创建 POC 映射（通过模板ID）
-	pocMap := make(map[string]*mysql.PocTemplate)
+	pocMap := make(map[string]*postgres.PocTemplate)
 	for _, poc := range pocs {
 		pocMap[poc.TemplateID] = poc
 	}

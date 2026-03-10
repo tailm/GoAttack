@@ -2,7 +2,7 @@ package dashboard
 
 import (
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"database/sql"
 	"net/http"
 	"time"
@@ -26,11 +26,11 @@ func refreshDashboardStats(username string) error {
 	var assetCount, vulnCount, taskCount, fingerprintCount int
 	var critical, high, medium, low, info int
 
-	mysql.DB.QueryRow("SELECT COUNT(*) FROM asset").Scan(&assetCount)
-	mysql.DB.QueryRow("SELECT COUNT(*) FROM asset_web_fingerprints").Scan(&fingerprintCount)
+	postgres.DB.QueryRow("SELECT COUNT(*) FROM asset").Scan(&assetCount)
+	postgres.DB.QueryRow("SELECT COUNT(*) FROM asset_web_fingerprints").Scan(&fingerprintCount)
 
 	// 漏洞各级别统计
-	mysql.DB.QueryRow(`
+	postgres.DB.QueryRow(`
 		SELECT
 			COUNT(*) as total,
 			SUM(CASE WHEN severity='critical' THEN 1 ELSE 0 END),
@@ -43,27 +43,27 @@ func refreshDashboardStats(username string) error {
 
 	// 任务统计（按用户隔离）
 	if username != "" {
-		mysql.DB.QueryRow("SELECT COUNT(*) FROM task WHERE creator = ?", username).Scan(&taskCount)
+		postgres.DB.QueryRow("SELECT COUNT(*) FROM task WHERE creator = $1", username).Scan(&taskCount)
 	} else {
-		mysql.DB.QueryRow("SELECT COUNT(*) FROM task").Scan(&taskCount)
+		postgres.DB.QueryRow("SELECT COUNT(*) FROM task").Scan(&taskCount)
 	}
 
-	// UPSERT 写入统计表（id=1 单行）
-	_, err := mysql.DB.Exec(`
+	// UPSERT 写入统计表（id=1 单行）- PostgreSQL 使用 INSERT ... ON CONFLICT
+	_, err := postgres.DB.Exec(`
 		INSERT INTO dashboard
 			(id, total_assets, total_vulnerabilities, total_tasks, total_fingerprints,
 			 critical_vulns, high_vulns, medium_vulns, low_vulns, info_vulns, updated_at)
-		VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-		ON DUPLICATE KEY UPDATE
-			total_assets          = VALUES(total_assets),
-			total_vulnerabilities = VALUES(total_vulnerabilities),
-			total_tasks           = VALUES(total_tasks),
-			total_fingerprints    = VALUES(total_fingerprints),
-			critical_vulns        = VALUES(critical_vulns),
-			high_vulns            = VALUES(high_vulns),
-			medium_vulns          = VALUES(medium_vulns),
-			low_vulns             = VALUES(low_vulns),
-			info_vulns            = VALUES(info_vulns),
+		VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+		ON CONFLICT (id) DO UPDATE SET
+			total_assets          = EXCLUDED.total_assets,
+			total_vulnerabilities = EXCLUDED.total_vulnerabilities,
+			total_tasks           = EXCLUDED.total_tasks,
+			total_fingerprints    = EXCLUDED.total_fingerprints,
+			critical_vulns        = EXCLUDED.critical_vulns,
+			high_vulns            = EXCLUDED.high_vulns,
+			medium_vulns          = EXCLUDED.medium_vulns,
+			low_vulns             = EXCLUDED.low_vulns,
+			info_vulns            = EXCLUDED.info_vulns,
 			updated_at            = NOW()`,
 		assetCount, vulnCount, taskCount, fingerprintCount,
 		critical, high, medium, low, info,
@@ -86,7 +86,7 @@ func GetOverview(c *gin.Context) {
 
 	// 从统计表读取
 	var assets, vulns, tasks, fingerprints int
-	mysql.DB.QueryRow(`
+	postgres.DB.QueryRow(`
 		SELECT total_assets, total_vulnerabilities, total_tasks, total_fingerprints
 		FROM dashboard WHERE id = 1`,
 	).Scan(&assets, &vulns, &tasks, &fingerprints)
@@ -124,7 +124,7 @@ func GetVulnTrend(c *gin.Context) {
 		endOfDay := startOfDay.Add(24 * time.Hour)
 
 		var total, critical, high, medium, low int
-		mysql.DB.QueryRow(`
+		postgres.DB.QueryRow(`
 			SELECT
 				COUNT(*) as total,
 				SUM(CASE WHEN severity='critical' THEN 1 ELSE 0 END),
@@ -132,7 +132,7 @@ func GetVulnTrend(c *gin.Context) {
 				SUM(CASE WHEN severity='medium'   THEN 1 ELSE 0 END),
 				SUM(CASE WHEN severity='low'      THEN 1 ELSE 0 END)
 			FROM vulnerability
-			WHERE discovered_at >= ? AND discovered_at < ?`,
+			WHERE discovered_at >= $1 AND discovered_at < $2`,
 			startOfDay, endOfDay,
 		).Scan(&total, &critical, &high, &medium, &low)
 
@@ -164,7 +164,7 @@ func GetVulnSeverity(c *gin.Context) {
 	_ = refreshDashboardStats(user)
 
 	var total, critical, high, medium, low, info int
-	mysql.DB.QueryRow(`
+	postgres.DB.QueryRow(`
 		SELECT
 			total_vulnerabilities,
 			critical_vulns, high_vulns, medium_vulns, low_vulns, info_vulns
@@ -187,8 +187,8 @@ func GetVulnSeverity(c *gin.Context) {
 
 // GetLatestVulns 获取最新添加漏洞（按时间降序）
 func GetLatestVulns(c *gin.Context) {
-	rows, err := mysql.DB.Query(`
-		SELECT id, name, severity, IFNULL(cve,''), target, discovered_at
+	rows, err := postgres.DB.Query(`
+		SELECT id, name, severity, COALESCE(cve,''), target, discovered_at
 		FROM vulnerability
 		ORDER BY discovered_at DESC
 		LIMIT 10`)
@@ -236,14 +236,14 @@ func GetRecentTasks(c *gin.Context) {
 	var err error
 
 	if user != "" {
-		rows, err = mysql.DB.Query(`
+		rows, err = postgres.DB.Query(`
 			SELECT id, name, status, progress, type, created_at
 			FROM task
-			WHERE creator = ?
+			WHERE creator = $1
 			ORDER BY created_at DESC
 			LIMIT 4`, user)
 	} else {
-		rows, err = mysql.DB.Query(`
+		rows, err = postgres.DB.Query(`
 			SELECT id, name, status, progress, type, created_at
 			FROM task
 			ORDER BY created_at DESC
@@ -284,12 +284,17 @@ func GetRecentTasks(c *gin.Context) {
 
 // GetRiskAlerts 获取风险提醒（高危漏洞，按级别优先）
 func GetRiskAlerts(c *gin.Context) {
-	rows, err := mysql.DB.Query(`
+	rows, err := postgres.DB.Query(`
 		SELECT id, name, severity, target, discovered_at
 		FROM vulnerability
 		WHERE severity IN ('critical', 'high', 'medium', 'low')
 		ORDER BY
-			FIELD(severity, 'critical', 'high', 'medium', 'low'),
+			CASE severity
+				WHEN 'critical' THEN 1
+				WHEN 'high' THEN 2
+				WHEN 'medium' THEN 3
+				WHEN 'low' THEN 4
+			END,
 			discovered_at DESC
 		LIMIT 8`)
 	if err != nil {

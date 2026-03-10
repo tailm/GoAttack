@@ -1,4 +1,4 @@
-package mysql
+package postgres
 
 import (
 	"database/sql"
@@ -20,7 +20,7 @@ func GetToolConfig(name string) (*ToolConfig, error) {
 	cfg := &ToolConfig{}
 	query := `
 	SELECT id, name, api_key, api_email, created_at, updated_at
-	FROM tools WHERE name = ? LIMIT 1`
+	FROM tools WHERE name = $1 LIMIT 1`
 	err := DB.QueryRow(query, name).Scan(
 		&cfg.ID, &cfg.Name, &cfg.APIKey, &cfg.APIEmail, &cfg.CreatedAt, &cfg.UpdatedAt,
 	)
@@ -59,11 +59,11 @@ func GetAllToolConfigs() ([]ToolConfig, error) {
 func UpsertToolConfig(name, apiKey, apiEmail string) error {
 	query := `
 	INSERT INTO tools (name, api_key, api_email)
-	VALUES (?, ?, ?)
-	ON DUPLICATE KEY UPDATE
-		api_key = VALUES(api_key),
-		api_email = VALUES(api_email),
-		updated_at = NOW()`
+	VALUES ($1, $2, $3)
+	ON CONFLICT (name) DO UPDATE SET
+		api_key = EXCLUDED.api_key,
+		api_email = EXCLUDED.api_email,
+		updated_at = CURRENT_TIMESTAMP`
 	_, err := DB.Exec(query, name, apiKey, apiEmail)
 	return err
 }

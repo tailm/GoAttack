@@ -4,7 +4,7 @@ import (
 	"GoAttack/api"
 	"GoAttack/common/config"
 	"GoAttack/common/log"
-	"GoAttack/common/mysql"
+	"GoAttack/common/postgres"
 	"GoAttack/common/redis"
 	"GoAttack/service"
 	"fmt"
@@ -17,13 +17,13 @@ func main() {
 
 	log.Info("==================== GoAttack 启动 ====================")
 
-	// 初始化 MySQL 数据库
-	err := mysql.InitDB()
+	// 初始化 PostgreSQL 数据库
+	err := postgres.InitDB()
 	if err != nil {
-		log.Fatal("MySQL 初始化失败: %v", err)
+		log.Fatal("PostgreSQL 初始化失败: %v", err)
 	}
-	defer mysql.Close()
-	log.Info("MySQL 数据库连接成功")
+	defer postgres.Close()
+	log.Info("PostgreSQL 数据库连接成功")
 
 	// 初始化Redis连接
 	err = redis.InitRedis(redis.RedisConfig{
