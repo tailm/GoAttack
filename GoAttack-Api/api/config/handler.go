@@ -243,9 +243,9 @@ func GetDetectionRules(c *gin.Context) {
 
 	query := fmt.Sprintf(`
 		SELECT id, name, description, type, condition, action, 
-		       severity, enabled, priority, tags, created_by, 
+		       severity, enabled, priority, tags, config, 
 		       created_at, updated_at
-		FROM detection_rule
+		FROM detection_rules
 		%s
 		ORDER BY priority DESC, created_at DESC
 	`, whereClause)
