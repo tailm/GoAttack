@@ -7,6 +7,7 @@ import (
 	"GoAttack/common/postgres"
 	"GoAttack/common/redis"
 	"GoAttack/service"
+	"GoAttack/service/intelligence"
 	"fmt"
 )
 
@@ -44,6 +45,14 @@ func main() {
 
 	// 启动定时任务调度器
 	service.StartTaskScheduler()
+
+	// 初始化漏洞情报服务
+	if err := intelligence.Init(postgres.DB); err != nil {
+		log.Warn("漏洞情报服务初始化失败: %v，将在没有漏洞情报功能的情况下继续运行", err)
+	} else {
+		defer intelligence.Stop()
+		log.Info("漏洞情报服务初始化成功")
+	}
 
 	r := api.SetupRouter()
 	if err := r.Run(":3000"); err != nil {

@@ -125,6 +125,11 @@ func autoMigrate() {
 	}
 }
 
+// GetDB 获取数据库连接实例
+func GetDB() *sql.DB {
+	return DB
+}
+
 // Close 关闭数据库连接
 func Close() {
 	if DB != nil {
