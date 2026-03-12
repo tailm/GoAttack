@@ -7,6 +7,7 @@ import (
 	"GoAttack/common/postgres"
 	"GoAttack/common/redis"
 	"GoAttack/service"
+	"GoAttack/service/detection"
 	"GoAttack/service/intelligence"
 	"fmt"
 )
@@ -52,6 +53,13 @@ func main() {
 	} else {
 		defer intelligence.Stop()
 		log.Info("漏洞情报服务初始化成功")
+	}
+
+	// 初始化检测引擎服务
+	if err := detection.Init(postgres.DB); err != nil {
+		log.Warn("检测引擎服务初始化失败: %v，将在没有检测功能的情况下继续运行", err)
+	} else {
+		log.Info("检测引擎服务初始化成功")
 	}
 
 	r := api.SetupRouter()
