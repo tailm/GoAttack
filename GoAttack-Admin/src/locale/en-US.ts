@@ -8,6 +8,7 @@ import locale403 from '@/views/exception/403/locale/en-US'
 import locale404 from '@/views/exception/404/locale/en-US'
 import locale500 from '@/views/exception/500/locale/en-US'
 import localeUserSetting from '@/views/user/setting/locale/en-US'
+import localeAlert from '@/views/intelligence/alert/locale/en-US'
 import localeSettings from './en-US/settings'
 
 export default {
@@ -46,6 +47,11 @@ export default {
   'menu.tools': 'Common Tools',
   'menu.tools.dict': 'Dict Manage',
   'menu.tools.searchEngine': 'Search Engine',
+  'menu.intelligence': 'Vulnerability Intelligence',
+  'menu.intelligence.vulnerabilities': 'Vulnerability Intelligence',
+  'menu.intelligence.detectionTasks': 'Detection Tasks',
+  'menu.intelligence.alerts': 'Alert Management',
+  'menu.intelligence.config': 'Configuration',
   'menu.user': 'User Center',
   'menu.arcoWebsite': 'Arco Design',
   'menu.faq': 'FAQ',
@@ -64,5 +70,6 @@ export default {
   ...locale500,
 
   ...localeUserSetting,
+  ...localeAlert,
   /** simple end */
 }

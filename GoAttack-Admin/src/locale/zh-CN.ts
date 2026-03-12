@@ -8,6 +8,7 @@ import locale403 from '@/views/exception/403/locale/zh-CN'
 import locale404 from '@/views/exception/404/locale/zh-CN'
 import locale500 from '@/views/exception/500/locale/zh-CN'
 import localeUserSetting from '@/views/user/setting/locale/zh-CN'
+import localeAlert from '@/views/intelligence/alert/locale/zh-CN'
 import localeSettings from './zh-CN/settings'
 
 export default {
@@ -48,6 +49,11 @@ export default {
   'menu.tools': '常用工具',
   'menu.tools.dict': '字典管理',
   'menu.tools.searchEngine': '空间测绘',
+  'menu.intelligence': '漏洞情报',
+  'menu.intelligence.vulnerabilities': '漏洞情报',
+  'menu.intelligence.detectionTasks': '检测任务',
+  'menu.intelligence.alerts': '预警管理',
+  'menu.intelligence.config': '配置管理',
   'navbar.docs': '文档中心',
   'navbar.action.locale': '切换为中文',
   ...localeSettings,
@@ -63,5 +69,6 @@ export default {
   ...locale500,
 
   ...localeUserSetting,
+  ...localeAlert,
   /** simple end */
 }
