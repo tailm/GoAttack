@@ -2,8 +2,12 @@ package api
 
 import (
 	"GoAttack/api/admin"
+	"GoAttack/api/alert"
+	"GoAttack/api/config"
 	"GoAttack/api/dashboard"
+	"GoAttack/api/detection"
 	"GoAttack/api/dict"
+	"GoAttack/api/intelligence"
 	"GoAttack/api/notification"
 	"GoAttack/api/plugin"
 	"GoAttack/api/poc"
@@ -63,6 +67,18 @@ func SetupRouter() *gin.Engine {
 
 		// 通知功能
 		notification.RegisterRoutes(api)
+
+		// 漏洞情报管理
+		intelligence.RegisterRoutes(api)
+
+		// 检测任务管理
+		detection.RegisterRoutes(api)
+
+		// 预警通知管理
+		alert.RegisterRoutes(api)
+
+		// 系统配置管理
+		config.RegisterRoutes(api)
 	}
 
 	return r
