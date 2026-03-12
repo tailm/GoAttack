@@ -244,7 +244,16 @@ func (ne *NucleiEngine) convertResultEvent(event *output.ResultEvent, target str
 	if len(event.ExtractedResults) > 0 {
 		result.ExtractedData = make(map[string]interface{})
 		for i, extracted := range event.ExtractedResults {
-			result.ExtractedData[fmt.Sprintf("extracted_%d", i)] = extracted
+			// 确保提取的数据可以序列化为JSON
+			key := fmt.Sprintf("extracted_%d", i)
+			
+			// 直接存储提取的数据
+			result.ExtractedData[key] = extracted
+		}
+		
+		// 如果ExtractedData为空，设置为nil以避免JSON序列化问题
+		if len(result.ExtractedData) == 0 {
+			result.ExtractedData = nil
 		}
 	}
 

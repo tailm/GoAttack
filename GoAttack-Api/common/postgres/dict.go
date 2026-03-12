@@ -64,7 +64,7 @@ func UpsertDict(d Dict) error {
 	query := `
 		INSERT INTO dict (name, type, category, size, lines_cnt, path)
 		VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (name) DO UPDATE SET
+		ON CONFLICT (name, type) DO UPDATE SET
 		size = EXCLUDED.size,
 		lines_cnt = EXCLUDED.lines_cnt,
 		path = EXCLUDED.path

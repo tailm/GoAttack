@@ -617,19 +617,18 @@ const handleTriggerUpload = () => {
 
 const handleFilesSelected = async (e: Event) => {
   const target = e.target as HTMLInputElement
-  const files = target.files
+  const { files } = target
   if (!files || files.length === 0) return
 
   scanLoading.value = true
   const formData = new FormData()
   let yamlCount = 0
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i]
+  Array.prototype.slice.call(files).forEach((file) => {
     if (file.name.endsWith('.yaml') || file.name.endsWith('.yml')) {
       formData.append('files', file)
-      yamlCount++
+      yamlCount += 1
     }
-  }
+  })
 
   if (yamlCount === 0) {
     Message.warning('未在所选目录中找到 YAML 格式的 POC 模板')

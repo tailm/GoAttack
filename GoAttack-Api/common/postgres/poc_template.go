@@ -221,9 +221,9 @@ func GetPocTemplateByID(id int64) (*PocTemplate, error) {
 	poc := &PocTemplate{}
 	query := `SELECT id, template_id, name, 
 		COALESCE(description, ''), COALESCE(author, ''), COALESCE(category, ''), COALESCE(severity, ''),
-		COALESCE(tags, ''), COALESCE(cve_id, ''), COALESCE(cnvd_id, ''), COALESCE(cwe_id, ''), 
+		COALESCE(tags::text, ''), COALESCE(cve_id, ''), COALESCE(cnvd_id, ''), COALESCE(cwe_id, ''), 
 		COALESCE(cvss_score, 0), COALESCE(cvss_metrics, ''), COALESCE(protocol, ''), COALESCE(max_request, 1),
-		COALESCE(reference, ''), COALESCE(classification, ''), COALESCE(metadata, ''), 
+		COALESCE(reference::text, ''), COALESCE(classification::text, ''), COALESCE(metadata::text, ''), 
 		file_path, COALESCE(file_hash, ''), COALESCE(template_content, ''),
 		is_active, verified, created_at, updated_at, last_scanned_at
 	FROM poc_template WHERE id = $1`
@@ -247,9 +247,9 @@ func GetPocTemplateByTemplateID(templateID string) (*PocTemplate, error) {
 	poc := &PocTemplate{}
 	query := `SELECT id, template_id, name, 
 		COALESCE(description, ''), COALESCE(author, ''), COALESCE(category, ''), COALESCE(severity, ''),
-		COALESCE(tags, ''), COALESCE(cve_id, ''), COALESCE(cnvd_id, ''), COALESCE(cwe_id, ''), 
+		COALESCE(tags::text, ''), COALESCE(cve_id, ''), COALESCE(cnvd_id, ''), COALESCE(cwe_id, ''), 
 		COALESCE(cvss_score, 0), COALESCE(cvss_metrics, ''), COALESCE(protocol, ''), COALESCE(max_request, 1),
-		COALESCE(reference, ''), COALESCE(classification, ''), COALESCE(metadata, ''), 
+		COALESCE(reference::text, ''), COALESCE(classification::text, ''), COALESCE(metadata::text, ''), 
 		file_path, COALESCE(file_hash, ''), COALESCE(template_content, ''),
 		is_active, verified, created_at, updated_at, last_scanned_at
 	FROM poc_template WHERE template_id = $1`
@@ -272,9 +272,9 @@ func GetPocTemplateByTemplateID(templateID string) (*PocTemplate, error) {
 func GetActivePocTemplates() ([]*PocTemplate, error) {
 	query := `SELECT id, template_id, name, 
 		COALESCE(description, ''), COALESCE(author, ''), COALESCE(category, ''), COALESCE(severity, ''),
-		COALESCE(tags, ''), COALESCE(cve_id, ''), COALESCE(cnvd_id, ''), COALESCE(cwe_id, ''), 
+		COALESCE(tags::text, ''), COALESCE(cve_id, ''), COALESCE(cnvd_id, ''), COALESCE(cwe_id, ''), 
 		COALESCE(cvss_score, 0), COALESCE(cvss_metrics, ''), COALESCE(protocol, ''), COALESCE(max_request, 1),
-		COALESCE(reference, ''), COALESCE(classification, ''), COALESCE(metadata, ''), 
+		COALESCE(reference::text, ''), COALESCE(classification::text, ''), COALESCE(metadata::text, ''), 
 		file_path, COALESCE(file_hash, ''), COALESCE(template_content, ''),
 		is_active, verified, created_at, updated_at, last_scanned_at
 	FROM poc_template WHERE is_active = true`
@@ -368,9 +368,9 @@ func ListPocTemplates(page, pageSize int, filters map[string]interface{}, sort, 
 	offset := (page - 1) * pageSize
 	query := `SELECT id, template_id, name, 
 		COALESCE(description, ''), COALESCE(author, ''), COALESCE(category, ''), COALESCE(severity, ''),
-		COALESCE(tags, ''), COALESCE(cve_id, ''), COALESCE(cnvd_id, ''), COALESCE(cwe_id, ''), 
+		COALESCE(tags::text, ''), COALESCE(cve_id, ''), COALESCE(cnvd_id, ''), COALESCE(cwe_id, ''), 
 		COALESCE(cvss_score, 0), COALESCE(cvss_metrics, ''), COALESCE(protocol, ''), COALESCE(max_request, 1),
-		COALESCE(reference, ''), COALESCE(classification, ''), COALESCE(metadata, ''), 
+		COALESCE(reference::text, ''), COALESCE(classification::text, ''), COALESCE(metadata::text, ''), 
 		file_path, COALESCE(file_hash, ''), COALESCE(template_content, ''),
 		is_active, verified, created_at, updated_at, last_scanned_at
 	FROM poc_template ` + whereClause + ` ORDER BY ` + sortField + ` ` + sortOrder + fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
@@ -418,9 +418,9 @@ func SearchPocTemplates(keyword string, page, pageSize int) ([]PocTemplate, int6
 	offset := (page - 1) * pageSize
 	query := `SELECT id, template_id, name, 
 		COALESCE(description, ''), COALESCE(author, ''), COALESCE(category, ''), COALESCE(severity, ''),
-		COALESCE(tags, ''), COALESCE(cve_id, ''), COALESCE(cnvd_id, ''), COALESCE(cwe_id, ''), 
+		COALESCE(tags::text, ''), COALESCE(cve_id, ''), COALESCE(cnvd_id, ''), COALESCE(cwe_id, ''), 
 		COALESCE(cvss_score, 0), COALESCE(cvss_metrics, ''), COALESCE(protocol, ''), COALESCE(max_request, 1),
-		COALESCE(reference, ''), COALESCE(classification, ''), COALESCE(metadata, ''), 
+		COALESCE(reference::text, ''), COALESCE(classification::text, ''), COALESCE(metadata::text, ''), 
 		file_path, COALESCE(file_hash, ''), COALESCE(template_content, ''),
 		is_active, verified, created_at, updated_at, last_scanned_at
 	FROM poc_template ` + whereClause + ` ORDER BY id DESC LIMIT $6 OFFSET $7`

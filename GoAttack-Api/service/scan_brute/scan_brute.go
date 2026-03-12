@@ -51,7 +51,7 @@ func ExecuteBruteForce(ctx context.Context, taskID int) {
 }
 
 func getBruteTasks(taskID int) []*BruteTask {
-	query := `SELECT ip, port, protocol, service_name FROM asset_port WHERE task_id = ? AND state = 'open'`
+	query := `SELECT ip, port, protocol, service_name FROM asset_port WHERE task_id = $1 AND state = 'open'`
 	rows, err := postgres.DB.Query(query, taskID)
 	var tasks []*BruteTask
 	if err != nil {
@@ -132,7 +132,7 @@ func bruteService(ctx context.Context, taskID int, t *BruteTask) {
 // reportVuln 统一上报弱口令漏洞
 func reportVuln(taskID int, ip string, port int, service string, user string, pass string) {
 	// 尝试从资产端口表中获取 Nmap 指纹识别出的详细产品和版本信息
-	query := `SELECT service_product, service_version FROM asset_port WHERE task_id = ? AND ip = ? AND port = ? LIMIT 1`
+	query := `SELECT service_product, service_version FROM asset_port WHERE task_id = $1 AND ip = $2 AND port = $3 LIMIT 1`
 	var product, version sql.NullString
 	postgres.DB.QueryRow(query, taskID, ip, port).Scan(&product, &version)
 

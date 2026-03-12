@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"GoAttack/common/log"
 )
 
 // PocVerifyResult POC验证结果
@@ -33,9 +35,18 @@ func SavePocVerifyResult(result *PocVerifyResult) error {
 	var extractedDataJSON []byte
 	var err error
 	if result.ExtractedData != nil {
-		extractedDataJSON, err = json.Marshal(result.ExtractedData)
-		if err != nil {
-			return fmt.Errorf("序列化extracted_data失败: %v", err)
+		// 清理ExtractedData，确保所有值都可以序列化为JSON
+		cleanedData := cleanJSONData(result.ExtractedData)
+		if len(cleanedData) == 0 {
+			// 如果清理后为空，设置为nil
+			result.ExtractedData = nil
+		} else {
+			extractedDataJSON, err = json.Marshal(cleanedData)
+			if err != nil {
+				// 如果序列化失败，记录错误但继续执行，将ExtractedData设置为空
+				log.Warn("序列化extracted_data失败: %v，将跳过此字段", err)
+				result.ExtractedData = nil
+			}
 		}
 	}
 
@@ -227,9 +238,18 @@ func UpdatePocVerifyResult(result *PocVerifyResult) error {
 	var extractedDataJSON []byte
 	var err error
 	if result.ExtractedData != nil {
-		extractedDataJSON, err = json.Marshal(result.ExtractedData)
-		if err != nil {
-			return fmt.Errorf("序列化extracted_data失败: %v", err)
+		// 清理ExtractedData，确保所有值都可以序列化为JSON
+		cleanedData := cleanJSONData(result.ExtractedData)
+		if len(cleanedData) == 0 {
+			// 如果清理后为空，设置为nil
+			result.ExtractedData = nil
+		} else {
+			extractedDataJSON, err = json.Marshal(cleanedData)
+			if err != nil {
+				// 如果序列化失败，记录错误但继续执行，将ExtractedData设置为空
+				log.Warn("序列化extracted_data失败: %v，将跳过此字段", err)
+				result.ExtractedData = nil
+			}
 		}
 	}
 
@@ -253,4 +273,75 @@ func UpdatePocVerifyResult(result *PocVerifyResult) error {
 	}
 
 	return nil
+}
+
+// cleanJSONData 清理数据，确保所有值都可以序列化为JSON
+func cleanJSONData(data map[string]interface{}) map[string]interface{} {
+	cleaned := make(map[string]interface{})
+	
+	for key, value := range data {
+		cleanedValue := cleanJSONValue(value)
+		if cleanedValue != nil {
+			cleaned[key] = cleanedValue
+		}
+	}
+	
+	return cleaned
+}
+
+// cleanJSONValue 递归清理JSON值
+func cleanJSONValue(value interface{}) interface{} {
+	switch v := value.(type) {
+	case nil:
+		return nil
+	case string, bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		// 基本类型可以直接返回
+		return v
+	case []byte:
+		// 字节数组转换为字符串
+		return string(v)
+	case []interface{}:
+		// 递归清理数组
+		cleanedArray := make([]interface{}, 0, len(v))
+		for _, item := range v {
+			cleanedItem := cleanJSONValue(item)
+			if cleanedItem != nil {
+				cleanedArray = append(cleanedArray, cleanedItem)
+			}
+		}
+		if len(cleanedArray) == 0 {
+			return nil
+		}
+		return cleanedArray
+	case map[string]interface{}:
+		// 递归清理map
+		cleanedMap := make(map[string]interface{})
+		for k, item := range v {
+			cleanedItem := cleanJSONValue(item)
+			if cleanedItem != nil {
+				cleanedMap[k] = cleanedItem
+			}
+		}
+		if len(cleanedMap) == 0 {
+			return nil
+		}
+		return cleanedMap
+	case map[interface{}]interface{}:
+		// 处理interface{}键的map，转换为string键
+		cleanedMap := make(map[string]interface{})
+		for k, item := range v {
+			keyStr := fmt.Sprintf("%v", k)
+			cleanedItem := cleanJSONValue(item)
+			if cleanedItem != nil {
+				cleanedMap[keyStr] = cleanedItem
+			}
+		}
+		if len(cleanedMap) == 0 {
+			return nil
+		}
+		return cleanedMap
+	default:
+		// 其他类型转换为字符串
+		return fmt.Sprintf("%v", v)
+	}
 }

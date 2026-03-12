@@ -14,13 +14,14 @@ type Plugin struct {
 	Description string `json:"description"`
 	Path        string `json:"path"`
 	Config      string `json:"config"`
+	Author      string `json:"author"`
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
 }
 
 // GetAllPlugins 获取所有插件
 func GetAllPlugins() ([]Plugin, error) {
-	query := "SELECT id, name, version, type, enabled, description, path, config, created_at, updated_at FROM plugins"
+	query := "SELECT id, name, version, type, enabled, description, path, config, created_at, updated_at, author FROM plugins"
 	rows, err := DB.Query(query)
 	if err != nil {
 		return nil, err
@@ -30,12 +31,13 @@ func GetAllPlugins() ([]Plugin, error) {
 	var plugins []Plugin
 	for rows.Next() {
 		var p Plugin
-		var config, created, updated sql.NullString
-		err := rows.Scan(&p.ID, &p.Name, &p.Version, &p.Type, &p.Enabled, &p.Description, &p.Path, &config, &created, &updated)
+		var config, created, updated, author sql.NullString
+		err := rows.Scan(&p.ID, &p.Name, &p.Version, &p.Type, &p.Enabled, &p.Description, &p.Path, &config, &created, &updated, &author)
 		if err != nil {
 			continue
 		}
 		p.Config = config.String
+		p.Author = author.String
 		p.CreatedAt = created.String
 		p.UpdatedAt = updated.String
 		plugins = append(plugins, p)
@@ -47,15 +49,17 @@ func GetAllPlugins() ([]Plugin, error) {
 // UpsertPlugin 添加或更新插件信息
 func UpsertPlugin(p Plugin) error {
 	query := `
-		INSERT INTO plugins (name, version, type, enabled, description, path)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO plugins (name, version, type, enabled, description, path, config, author)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (name) DO UPDATE SET
 		version = EXCLUDED.version,
 		type = EXCLUDED.type,
 		description = EXCLUDED.description,
-		path = EXCLUDED.path
+		path = EXCLUDED.path,
+		config = EXCLUDED.config,
+		author = EXCLUDED.author
 	`
-	_, err := DB.Exec(query, p.Name, p.Version, p.Type, p.Enabled, p.Description, p.Path)
+	_, err := DB.Exec(query, p.Name, p.Version, p.Type, p.Enabled, p.Description, p.Path, p.Config, p.Author)
 	return err
 }
 
