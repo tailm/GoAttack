@@ -1,5 +1,115 @@
 
-# Go binary files
+# ============================================
+# 日志文件
+# ============================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================================
+# 运行时文件
+# ============================================
+*.pid
+*.seed
+*.pid.lock
+
+# ============================================
+# 编译产物和二进制文件
+# ============================================
+# Go 二进制文件
 GoAttack-Api/goattack-api
 GoAttack-Api/api-server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go 测试和构建缓存
+GoAttack-Api/bin/
+GoAttack-Api/pkg/
+*.test
+*.out
+
+# Node.js 依赖和构建产物
+node_modules/
+npm/
+yarn/
+pnpm/
+.pnpm-store/
+*.tgz
+
+# 前端构建产物
+GoAttack-Admin/dist/
+GoAttack-Admin/.output/
+GoAttack-Admin/.nuxt/
+GoAttack-Admin/.next/
+GoAttack-Admin/.vuepress/dist/
+GoAttack-Admin/.temp/
+GoAttack-Admin/.cache/
+*.tsbuildinfo
+
+# ============================================
+# 环境变量和配置文件
+# ============================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# ============================================
+# 编辑器文件和IDE配置
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ============================================
+# 操作系统文件
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# ============================================
+# 测试覆盖率报告
+# ============================================
+coverage/
+*.lcov
+
+# ============================================
+# 其他
+# ============================================
+# 临时文件
+tmp/
+temp/
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 备份文件
+*.bak
+*.backup
+*.old
 
