@@ -1,3 +1,32 @@
+// Package detection 提供漏洞检测引擎服务。
+//
+// 该包负责执行漏洞扫描任务，包括：
+//   - 目标资产扫描
+//   - 漏洞规则匹配
+//   - 检测任务管理
+//   - 扫描结果分析
+//
+// 主要功能：
+//   - 创建和管理检测任务
+//   - 执行漏洞扫描
+//   - 生成检测报告
+//   - 任务状态监控
+//
+// 核心组件：
+//   - Service: 检测服务接口，提供任务管理API
+//   - Engine: 检测引擎，负责实际扫描逻辑
+//   - Scanner: 扫描器，执行具体的漏洞检测
+//
+// 支持的目标类型：
+//   - IP地址和CIDR范围
+//   - 域名和URL
+//   - 端口和服务
+//
+// 支持的检测规则：
+//   - 基于CVE的漏洞检测
+//   - 自定义POC验证
+//   - 弱口令检测
+//   - 配置错误检测
 package detection
 
 import (
@@ -9,13 +38,39 @@ import (
 	"time"
 )
 
-// Service 检测服务
+// Service 检测服务结构体
+//
+// Service 是漏洞检测模块的核心，负责管理检测任务和执行引擎。
+// 它提供对外的 API 接口，包括：
+//   - 检测任务创建、查询、更新、删除
+//   - 任务执行控制（启动、停止、暂停）
+//   - 检测结果查询和导出
+//   - 任务状态监控
+//
+// 字段：
+//   - db: PostgreSQL 数据库连接，用于存储任务和结果
+//   - engine: 检测引擎实例，负责执行扫描任务
 type Service struct {
 	db    *sql.DB
 	engine *Engine
 }
 
-// NewService 创建新的检测服务
+// NewService 创建新的检测服务实例。
+//
+// 参数：
+//   - db: PostgreSQL 数据库连接，用于存储检测任务和结果
+//
+// 返回值：
+//   *Service: 初始化好的检测服务实例
+//
+// 该函数会：
+//   1. 创建 Engine 实例用于执行检测任务
+//   2. 返回包含引擎的 Service 实例
+//
+// 示例：
+//   db, _ := sql.Open("postgres", "connection_string")
+//   service := NewService(db)
+//   taskID, err := service.CreateTask(ctx, taskRequest)
 func NewService(db *sql.DB) *Service {
 	engine := NewEngine(db)
 	return &Service{

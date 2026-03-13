@@ -1,3 +1,29 @@
+// Package intelligence 提供漏洞情报收集和管理服务。
+//
+// 该包负责从多个公开漏洞库自动收集漏洞信息，包括：
+//   - 国家漏洞数据库 (NVD)
+//   - 阿里云漏洞库 (AVD)
+//   - 国家信息安全漏洞库 (CNNVD)
+//   - 国家信息安全漏洞共享平台 (CNVD)
+//   - Exploit Database
+//   - SecurityFocus
+//
+// 主要功能：
+//   - 多源漏洞情报同步
+//   - 定时任务调度
+//   - 漏洞数据存储和查询
+//   - 情报源配置管理
+//
+// 核心组件：
+//   - Service: 主服务接口，提供对外API
+//   - Collector: 数据收集器，负责从各源获取数据
+//   - Scheduler: 任务调度器，管理定时同步任务
+//
+// 数据流：
+//   1. Scheduler 定时触发收集任务
+//   2. Collector 从配置的源获取漏洞数据
+//   3. 数据经过清洗和格式化后存储到数据库
+//   4. Service 提供查询接口供其他模块使用
 package intelligence
 
 import (
@@ -9,14 +35,42 @@ import (
 	"time"
 )
 
-// Service 漏洞情报服务
+// Service 漏洞情报服务结构体
+//
+// Service 是漏洞情报模块的核心，负责协调 Collector 和 Scheduler 的工作。
+// 它提供对外的 API 接口，包括：
+//   - 情报源管理（增删改查）
+//   - 漏洞数据查询
+//   - 手动触发同步
+//   - 调度器控制
+//
+// 字段：
+//   - db: PostgreSQL 数据库连接
+//   - collector: 数据收集器实例
+//   - scheduler: 任务调度器实例
 type Service struct {
 	db        *sql.DB
 	collector *Collector
 	scheduler *Scheduler
 }
 
-// NewService 创建新的服务
+// NewService 创建新的漏洞情报服务实例。
+//
+// 参数：
+//   - db: PostgreSQL 数据库连接，用于存储漏洞数据和配置
+//
+// 返回值：
+//   *Service: 初始化好的漏洞情报服务实例
+//
+// 该函数会：
+//   1. 创建 Collector 实例用于数据收集
+//   2. 创建 Scheduler 实例用于任务调度
+//   3. 返回包含这两个组件的 Service 实例
+//
+// 示例：
+//   db, _ := sql.Open("postgres", "connection_string")
+//   service := NewService(db)
+//   service.StartScheduler(context.Background())
 func NewService(db *sql.DB) *Service {
 	collector := NewCollector(db)
 	scheduler := NewScheduler(db)
