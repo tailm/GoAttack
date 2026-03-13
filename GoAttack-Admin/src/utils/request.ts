@@ -6,8 +6,8 @@ const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 })
 
 // 请求拦截器
@@ -33,13 +33,12 @@ request.interceptors.response.use(
       const { code, msg } = response.data
       if (code === 20000) {
         return response.data
-      } else {
-        // 非20000状态码，抛出错误
-        const error = new Error(msg || '请求失败')
-        ;(error as any).code = code
-        ;(error as any).response = response
-        return Promise.reject(error)
       }
+      // 非20000状态码，抛出错误
+      const error = new Error(msg || '请求失败')
+      ;(error as any).code = code
+      ;(error as any).response = response
+      return Promise.reject(error)
     }
     return response.data
   },
@@ -52,21 +51,22 @@ request.interceptors.response.use(
           window.location.href = '/login'
           break
         case 403:
-          console.error('权限不足')
+          // 权限不足，静默处理
           break
         case 404:
-          console.error('请求的资源不存在')
+          // 请求的资源不存在，静默处理
           break
         case 500:
-          console.error('服务器内部错误')
+          // 服务器内部错误，静默处理
           break
         default:
-          console.error('请求错误', error.response.status)
+          // 其他HTTP错误，静默处理
+          break
       }
     } else if (error.request) {
-      console.error('网络错误，请检查网络连接')
+      // 网络错误，静默处理
     } else {
-      console.error('请求配置错误', error.message)
+      // 请求配置错误，静默处理
     }
     return Promise.reject(error)
   }

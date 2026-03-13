@@ -7,7 +7,7 @@
           <span>{{ $t('menu.intelligence.detectionTasks') }}</span>
         </a-space>
       </template>
-      
+
       <!-- 操作按钮区域 -->
       <div class="action-area">
         <a-space>
@@ -95,32 +95,17 @@
                     <icon-eye />
                   </template>
                 </a-button>
-                <a-button 
-                  type="text" 
-                  size="small" 
-                  @click="handleStartTask(record)"
-                  :disabled="record.status === 'running'"
-                >
+                <a-button type="text" size="small" @click="handleStartTask(record)" :disabled="record.status === 'running'">
                   <template #icon>
                     <icon-play-circle />
                   </template>
                 </a-button>
-                <a-button 
-                  type="text" 
-                  size="small" 
-                  @click="handleStopTask(record)"
-                  :disabled="record.status !== 'running'"
-                >
+                <a-button type="text" size="small" @click="handleStopTask(record)" :disabled="record.status !== 'running'">
                   <template #icon>
                     <icon-pause />
                   </template>
                 </a-button>
-                <a-button 
-                  type="text" 
-                  size="small" 
-                  status="danger"
-                  @click="handleDeleteTask(record)"
-                >
+                <a-button type="text" size="small" status="danger" @click="handleDeleteTask(record)">
                   <template #icon>
                     <icon-delete />
                   </template>
@@ -133,13 +118,7 @@
     </a-card>
 
     <!-- 创建任务对话框 -->
-    <a-modal
-      v-model:visible="createVisible"
-      title="新建检测任务"
-      width="600px"
-      @ok="handleCreateConfirm"
-      @cancel="handleCreateCancel"
-    >
+    <a-modal v-model:visible="createVisible" title="新建检测任务" width="600px" @ok="handleCreateConfirm" @cancel="handleCreateCancel">
       <a-form :model="createForm" :label-col-props="{ span: 6 }" :wrapper-col-props="{ span: 18 }">
         <a-form-item field="name" label="任务名称" required>
           <a-input v-model="createForm.name" placeholder="请输入任务名称" />
@@ -156,18 +135,10 @@
           </a-select>
         </a-form-item>
         <a-form-item field="targets" label="检测目标" required>
-          <a-textarea 
-            v-model="createForm.targets" 
-            placeholder="请输入检测目标，每行一个（支持IP、域名、CIDR）" 
-            :rows="4" 
-          />
+          <a-textarea v-model="createForm.targets" placeholder="请输入检测目标，每行一个（支持IP、域名、CIDR）" :rows="4" />
         </a-form-item>
         <a-form-item field="config" label="检测配置">
-          <a-textarea 
-            v-model="createForm.config" 
-            placeholder="请输入JSON格式的检测配置" 
-            :rows="4" 
-          />
+          <a-textarea v-model="createForm.config" placeholder="请输入JSON格式的检测配置" :rows="4" />
         </a-form-item>
         <a-form-item field="schedule" label="调度计划">
           <a-input v-model="createForm.schedule" placeholder="Cron表达式，如：0 0 * * *（每天0点）" />
@@ -176,13 +147,7 @@
     </a-modal>
 
     <!-- 任务详情对话框 -->
-    <a-modal
-      v-model:visible="detailVisible"
-      :title="detailTitle"
-      width="800px"
-      :footer="false"
-      @cancel="handleCloseDetail"
-    >
+    <a-modal v-model:visible="detailVisible" :title="detailTitle" width="800px" :footer="false" @cancel="handleCloseDetail">
       <div v-if="currentRecord">
         <a-descriptions :column="2" bordered>
           <a-descriptions-item label="任务ID">{{ currentRecord.id }}</a-descriptions-item>
@@ -218,27 +183,27 @@
             {{ currentRecord.next_run ? formatDate(currentRecord.next_run) : '-' }}
           </a-descriptions-item>
         </a-descriptions>
-        
+
         <a-divider />
-        
+
         <a-typography-title :heading="6">任务描述</a-typography-title>
         <a-typography-paragraph>
           {{ currentRecord.description || '暂无描述' }}
         </a-typography-paragraph>
-        
+
         <a-divider />
-        
+
         <a-typography-title :heading="6">检测配置</a-typography-title>
-        <pre v-if="currentRecord.config" style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow: auto;">
-{{ JSON.stringify(currentRecord.config, null, 2) }}
+        <pre v-if="currentRecord.config" style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow: auto"
+          >{{ JSON.stringify(currentRecord.config, null, 2) }}
         </pre>
         <a-typography-paragraph v-else>暂无配置信息</a-typography-paragraph>
-        
+
         <a-divider />
-        
+
         <a-typography-title :heading="6">调度计划</a-typography-title>
-        <pre v-if="currentRecord.schedule" style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow: auto;">
-{{ JSON.stringify(currentRecord.schedule, null, 2) }}
+        <pre v-if="currentRecord.schedule" style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow: auto"
+          >{{ JSON.stringify(currentRecord.schedule, null, 2) }}
         </pre>
         <a-typography-paragraph v-else>暂无调度计划</a-typography-paragraph>
       </div>
@@ -249,13 +214,13 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from 'vue'
 import { Message, Modal } from '@arco-design/web-vue'
-import { 
+import {
   getDetectionTaskList,
   createDetectionTask,
   updateDetectionTaskStatus,
   deleteDetectionTask,
   type DetectionTask,
-  type DetectionTaskQuery
+  type DetectionTaskQuery,
 } from '@/api/detection'
 
 // 表格数据
@@ -267,7 +232,7 @@ const pagination = reactive({
   total: 0,
   showTotal: true,
   showPageSize: true,
-  pageSizeOptions: [10, 20, 50, 100]
+  pageSizeOptions: [10, 20, 50, 100],
 })
 
 // 创建任务表单
@@ -278,7 +243,7 @@ const createForm = reactive({
   detectionType: 'vulnerability',
   targets: '',
   config: '{}',
-  schedule: ''
+  schedule: '',
 })
 
 // 详情对话框
@@ -292,9 +257,9 @@ const fetchData = async () => {
   try {
     const query: DetectionTaskQuery = {
       page: pagination.current,
-      pageSize: pagination.pageSize
+      pageSize: pagination.pageSize,
     }
-    
+
     const response = await getDetectionTaskList(query)
     if (response.code === 20000) {
       tableData.value = response.data?.items || []
@@ -304,7 +269,7 @@ const fetchData = async () => {
     }
   } catch (error) {
     Message.error('获取数据失败')
-    console.error('获取检测任务失败:', error)
+    // 获取检测任务失败
   } finally {
     loading.value = false
   }
@@ -328,6 +293,15 @@ const handlePageSizeChange = (pageSize: number) => {
 }
 
 // 创建任务
+const resetCreateForm = () => {
+  createForm.name = ''
+  createForm.description = ''
+  createForm.detectionType = 'vulnerability'
+  createForm.targets = ''
+  createForm.config = '{}'
+  createForm.schedule = ''
+}
+
 const handleCreateTask = () => {
   createVisible.value = true
 }
@@ -337,26 +311,26 @@ const handleCreateConfirm = async () => {
     Message.error('请输入任务名称')
     return
   }
-  
+
   if (!createForm.targets.trim()) {
     Message.error('请输入检测目标')
     return
   }
-  
+
   try {
-    const targets = createForm.targets.split('\n').filter(t => t.trim())
+    const targets = createForm.targets.split('\n').filter((t) => t.trim())
     const config = createForm.config ? JSON.parse(createForm.config) : {}
     const schedule = createForm.schedule ? { cron: createForm.schedule } : undefined
-    
+
     const response = await createDetectionTask({
       name: createForm.name,
       description: createForm.description,
       detection_type: createForm.detectionType,
       targets,
       config,
-      schedule
+      schedule,
     })
-    
+
     if (response.code === 20000) {
       Message.success('任务创建成功')
       createVisible.value = false
@@ -367,22 +341,13 @@ const handleCreateConfirm = async () => {
     }
   } catch (error) {
     Message.error('任务创建失败')
-    console.error('创建检测任务失败:', error)
+    // 创建检测任务失败
   }
 }
 
 const handleCreateCancel = () => {
   createVisible.value = false
   resetCreateForm()
-}
-
-const resetCreateForm = () => {
-  createForm.name = ''
-  createForm.description = ''
-  createForm.detectionType = 'vulnerability'
-  createForm.targets = ''
-  createForm.config = '{}'
-  createForm.schedule = ''
 }
 
 // 查看详情
@@ -410,7 +375,7 @@ const handleStartTask = async (record: DetectionTask) => {
     }
   } catch (error) {
     Message.error('启动任务失败')
-    console.error('启动检测任务失败:', error)
+    // 启动检测任务失败
   }
 }
 
@@ -426,7 +391,7 @@ const handleStopTask = async (record: DetectionTask) => {
     }
   } catch (error) {
     Message.error('停止任务失败')
-    console.error('停止检测任务失败:', error)
+    // 停止检测任务失败
   }
 }
 
@@ -438,7 +403,7 @@ const handleDeleteTask = (record: DetectionTask) => {
     okText: '删除',
     cancelText: '取消',
     okButtonProps: {
-      status: 'danger'
+      status: 'danger',
     },
     onOk: async () => {
       try {
@@ -451,72 +416,104 @@ const handleDeleteTask = (record: DetectionTask) => {
         }
       } catch (error) {
         Message.error('删除任务失败')
-        console.error('删除检测任务失败:', error)
+        // 删除检测任务失败
       }
-    }
+    },
   })
 }
 
 // 工具函数
 const getTypeColor = (type: string) => {
   switch (type) {
-    case 'vulnerability': return 'red'
-    case 'compliance': return 'blue'
-    case 'baseline': return 'green'
-    case 'custom': return 'purple'
-    default: return 'gray'
+    case 'vulnerability':
+      return 'red'
+    case 'compliance':
+      return 'blue'
+    case 'baseline':
+      return 'green'
+    case 'custom':
+      return 'purple'
+    default:
+      return 'gray'
   }
 }
 
 const getTypeText = (type: string) => {
   switch (type) {
-    case 'vulnerability': return '漏洞检测'
-    case 'compliance': return '合规检测'
-    case 'baseline': return '基线检测'
-    case 'custom': return '自定义检测'
-    default: return type
+    case 'vulnerability':
+      return '漏洞检测'
+    case 'compliance':
+      return '合规检测'
+    case 'baseline':
+      return '基线检测'
+    case 'custom':
+      return '自定义检测'
+    default:
+      return type
   }
 }
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'pending': return 'orange'
-    case 'running': return 'green'
-    case 'completed': return 'blue'
-    case 'failed': return 'red'
-    case 'stopped': return 'gray'
-    default: return 'gray'
+    case 'pending':
+      return 'orange'
+    case 'running':
+      return 'green'
+    case 'completed':
+      return 'blue'
+    case 'failed':
+      return 'red'
+    case 'stopped':
+      return 'gray'
+    default:
+      return 'gray'
   }
 }
 
 const getStatusText = (status: string) => {
   switch (status) {
-    case 'pending': return '等待中'
-    case 'running': return '运行中'
-    case 'completed': return '已完成'
-    case 'failed': return '失败'
-    case 'stopped': return '已停止'
-    default: return status
+    case 'pending':
+      return '等待中'
+    case 'running':
+      return '运行中'
+    case 'completed':
+      return '已完成'
+    case 'failed':
+      return '失败'
+    case 'stopped':
+      return '已停止'
+    default:
+      return status
   }
 }
 
 const getRiskColor = (risk: string) => {
   switch (risk?.toLowerCase()) {
-    case 'critical': return 'red'
-    case 'high': return 'orange'
-    case 'medium': return 'yellow'
-    case 'low': return 'green'
-    default: return 'gray'
+    case 'critical':
+      return 'red'
+    case 'high':
+      return 'orange'
+    case 'medium':
+      return 'yellow'
+    case 'low':
+      return 'green'
+    default:
+      return 'gray'
   }
 }
 
 const getRiskText = (risk: string) => {
   switch (risk?.toLowerCase()) {
-    case 'critical': return '严重'
-    case 'high': return '高危'
-    case 'medium': return '中危'
-    case 'low': return '低危'
-    default: return risk
+    case 'critical':
+      return '严重'
+    case 'high':
+      return '高危'
+    case 'medium':
+      return '中危'
+    case 'low':
+      return '低危'
+    default:
+      return risk
   }
 }
 

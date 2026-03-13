@@ -10,7 +10,7 @@
               <span>漏洞情报源配置</span>
             </a-space>
           </template>
-          
+
           <div class="action-area">
             <a-button type="primary" @click="handleAddSource">
               <template #icon>
@@ -26,12 +26,7 @@
             </a-button>
           </div>
 
-          <a-table
-            :data="sourcesData"
-            :loading="sourcesLoading"
-            row-key="id"
-            :bordered="false"
-          >
+          <a-table :data="sourcesData" :loading="sourcesLoading" row-key="id" :bordered="false">
             <template #columns>
               <a-table-column title="名称" data-index="name" :width="150">
                 <template #cell="{ record }">
@@ -55,12 +50,7 @@
               </a-table-column>
               <a-table-column title="状态" data-index="enabled" :width="80">
                 <template #cell="{ record }">
-                  <a-switch 
-                    v-model="record.enabled" 
-                    :checked-value="true"
-                    :unchecked-value="false"
-                    @change="handleToggleSource(record)"
-                  />
+                  <a-switch v-model="record.enabled" :checked-value="true" :unchecked-value="false" @change="handleToggleSource(record)" />
                 </template>
               </a-table-column>
               <a-table-column title="同步间隔" data-index="sync_interval" :width="120">
@@ -87,22 +77,12 @@
                         <icon-edit />
                       </template>
                     </a-button>
-                    <a-button 
-                      type="text" 
-                      size="small" 
-                      @click="handleSyncSource(record)"
-                      :loading="record.id === syncingSourceId"
-                    >
+                    <a-button type="text" size="small" @click="handleSyncSource(record)" :loading="record.id === syncingSourceId">
                       <template #icon>
                         <icon-sync />
                       </template>
                     </a-button>
-                    <a-button 
-                      type="text" 
-                      size="small" 
-                      status="danger"
-                      @click="handleDeleteSource(record)"
-                    >
+                    <a-button type="text" size="small" status="danger" @click="handleDeleteSource(record)">
                       <template #icon>
                         <icon-delete />
                       </template>
@@ -124,7 +104,7 @@
               <span>检测规则配置</span>
             </a-space>
           </template>
-          
+
           <div class="action-area">
             <a-button type="primary" @click="handleAddRule">
               <template #icon>
@@ -134,12 +114,7 @@
             </a-button>
           </div>
 
-          <a-table
-            :data="rulesData"
-            :loading="rulesLoading"
-            row-key="id"
-            :bordered="false"
-          >
+          <a-table :data="rulesData" :loading="rulesLoading" row-key="id" :bordered="false">
             <template #columns>
               <a-table-column title="规则名称" data-index="name" :width="200">
                 <template #cell="{ record }">
@@ -169,12 +144,7 @@
               </a-table-column>
               <a-table-column title="状态" data-index="enabled" :width="80">
                 <template #cell="{ record }">
-                  <a-switch 
-                    v-model="record.enabled" 
-                    :checked-value="true"
-                    :unchecked-value="false"
-                    @change="handleToggleRule(record)"
-                  />
+                  <a-switch v-model="record.enabled" :checked-value="true" :unchecked-value="false" @change="handleToggleRule(record)" />
                 </template>
               </a-table-column>
               <a-table-column title="优先级" data-index="priority" :width="80">
@@ -190,12 +160,7 @@
                         <icon-edit />
                       </template>
                     </a-button>
-                    <a-button 
-                      type="text" 
-                      size="small" 
-                      status="danger"
-                      @click="handleDeleteRule(record)"
-                    >
+                    <a-button type="text" size="small" status="danger" @click="handleDeleteRule(record)">
                       <template #icon>
                         <icon-delete />
                       </template>
@@ -217,7 +182,7 @@
               <span>预警通知配置</span>
             </a-space>
           </template>
-          
+
           <div class="action-area">
             <a-button type="primary" @click="handleAddAlertConfig">
               <template #icon>
@@ -227,12 +192,7 @@
             </a-button>
           </div>
 
-          <a-table
-            :data="alertConfigsData"
-            :loading="alertConfigsLoading"
-            row-key="id"
-            :bordered="false"
-          >
+          <a-table :data="alertConfigsData" :loading="alertConfigsLoading" row-key="id" :bordered="false">
             <template #columns>
               <a-table-column title="配置名称" data-index="name" :width="150">
                 <template #cell="{ record }">
@@ -276,8 +236,8 @@
               </a-table-column>
               <a-table-column title="状态" data-index="enabled" :width="80">
                 <template #cell="{ record }">
-                  <a-switch 
-                    v-model="record.enabled" 
+                  <a-switch
+                    v-model="record.enabled"
                     :checked-value="true"
                     :unchecked-value="false"
                     @change="handleToggleAlertConfig(record)"
@@ -292,12 +252,7 @@
                         <icon-edit />
                       </template>
                     </a-button>
-                    <a-button 
-                      type="text" 
-                      size="small" 
-                      status="danger"
-                      @click="handleDeleteAlertConfig(record)"
-                    >
+                    <a-button type="text" size="small" status="danger" @click="handleDeleteAlertConfig(record)">
                       <template #icon>
                         <icon-delete />
                       </template>
@@ -345,23 +300,13 @@
           <template #extra>最小值为300秒（5分钟）</template>
         </a-form-item>
         <a-form-item field="config" label="配置参数">
-          <a-textarea 
-            v-model="sourceForm.config" 
-            placeholder="请输入JSON格式的配置参数" 
-            :rows="4" 
-          />
+          <a-textarea v-model="sourceForm.config" placeholder="请输入JSON格式的配置参数" :rows="4" />
         </a-form-item>
       </a-form>
     </a-modal>
 
     <!-- 检测规则编辑对话框 -->
-    <a-modal
-      v-model:visible="ruleDialogVisible"
-      :title="ruleDialogTitle"
-      width="600px"
-      @ok="handleSaveRule"
-      @cancel="handleCancelRule"
-    >
+    <a-modal v-model:visible="ruleDialogVisible" :title="ruleDialogTitle" width="600px" @ok="handleSaveRule" @cancel="handleCancelRule">
       <a-form :model="ruleForm" :label-col-props="{ span: 6 }" :wrapper-col-props="{ span: 18 }">
         <a-form-item field="name" label="规则名称" required>
           <a-input v-model="ruleForm.name" placeholder="请输入规则名称" />
@@ -415,7 +360,7 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from 'vue'
 import { Message, Modal } from '@arco-design/web-vue'
-import { 
+import {
   getIntelligenceSources,
   updateIntelligenceSource,
   getDetectionRules,
@@ -426,7 +371,7 @@ import {
   syncIntelligenceSource,
   type IntelligenceSource,
   type DetectionRule,
-  type AlertConfig
+  type AlertConfig,
 } from '@/api/config'
 
 // 情报源数据
@@ -455,7 +400,7 @@ const sourceForm = reactive({
   type: 'avd',
   enabled: true,
   sync_interval: 3600,
-  config: '{}'
+  config: '{}',
 })
 
 // 检测规则对话框
@@ -471,7 +416,7 @@ const ruleForm = reactive({
   severity: 'medium',
   enabled: true,
   priority: 0,
-  tags: [] as string[]
+  tags: [] as string[],
 })
 
 // 获取情报源数据
@@ -486,7 +431,7 @@ const fetchSources = async () => {
     }
   } catch (error) {
     Message.error('获取情报源失败')
-    console.error('获取情报源失败:', error)
+    // '获取情报源失败:', error)
   } finally {
     sourcesLoading.value = false
   }
@@ -504,7 +449,7 @@ const fetchRules = async () => {
     }
   } catch (error) {
     Message.error('获取检测规则失败')
-    console.error('获取检测规则失败:', error)
+    // '获取检测规则失败:', error)
   } finally {
     rulesLoading.value = false
   }
@@ -522,7 +467,7 @@ const fetchAlertConfigs = async () => {
     }
   } catch (error) {
     Message.error('获取预警配置失败')
-    console.error('获取预警配置失败:', error)
+    // '获取预警配置失败:', error)
   } finally {
     alertConfigsLoading.value = false
   }
@@ -560,24 +505,24 @@ const handleSaveSource = async () => {
     Message.error('请输入情报源名称')
     return
   }
-  
+
   if (!sourceForm.url.trim()) {
     Message.error('请输入URL')
     return
   }
-  
+
   try {
     const config = sourceForm.config ? JSON.parse(sourceForm.config) : {}
-    
+
     const data = {
       name: sourceForm.name,
       url: sourceForm.url,
       type: sourceForm.type,
       enabled: sourceForm.enabled,
       sync_interval: sourceForm.sync_interval,
-      config
+      config,
     }
-    
+
     if (sourceForm.id > 0) {
       // 更新
       const response = await updateIntelligenceSource(sourceForm.id, data)
@@ -594,7 +539,7 @@ const handleSaveSource = async () => {
     }
   } catch (error) {
     Message.error('保存失败')
-    console.error('保存情报源失败:', error)
+    // '保存情报源失败:', error)
   }
 }
 
@@ -607,9 +552,9 @@ const handleCancelSource = () => {
 const handleToggleSource = async (record: IntelligenceSource) => {
   try {
     const data = {
-      enabled: record.enabled
+      enabled: record.enabled,
     }
-    
+
     const response = await updateIntelligenceSource(record.id, data)
     if (response.code === 20000) {
       Message.success(`情报源已${record.enabled ? '启用' : '禁用'}`)
@@ -620,7 +565,7 @@ const handleToggleSource = async (record: IntelligenceSource) => {
     }
   } catch (error) {
     Message.error('操作失败')
-    console.error('切换情报源状态失败:', error)
+    // '切换情报源状态失败:', error)
     // 回滚状态
     record.enabled = !record.enabled
   }
@@ -639,7 +584,7 @@ const handleSyncSource = async (record: IntelligenceSource) => {
     }
   } catch (error) {
     Message.error('同步失败')
-    console.error('同步情报源失败:', error)
+    // '同步情报源失败:', error)
   } finally {
     syncingSourceId.value = null
   }
@@ -653,7 +598,7 @@ const handleSyncAll = async () => {
     Message.info('批量同步功能开发中...')
   } catch (error) {
     Message.error('同步失败')
-    console.error('同步所有情报源失败:', error)
+    // '同步所有情报源失败:', error)
   } finally {
     syncingAll.value = false
   }
@@ -667,7 +612,7 @@ const handleDeleteSource = (record: IntelligenceSource) => {
     okText: '删除',
     cancelText: '取消',
     okButtonProps: {
-      status: 'danger'
+      status: 'danger',
     },
     onOk: async () => {
       try {
@@ -675,9 +620,9 @@ const handleDeleteSource = (record: IntelligenceSource) => {
         Message.info('删除功能开发中...')
       } catch (error) {
         Message.error('删除失败')
-        console.error('删除情报源失败:', error)
+        // '删除情报源失败:', error)
       }
-    }
+    },
   })
 }
 
@@ -719,12 +664,12 @@ const handleSaveRule = async () => {
     Message.error('请输入规则名称')
     return
   }
-  
+
   if (!ruleForm.condition.trim()) {
     Message.error('请输入检测条件')
     return
   }
-  
+
   try {
     const data = {
       name: ruleForm.name,
@@ -735,9 +680,9 @@ const handleSaveRule = async () => {
       severity: ruleForm.severity,
       enabled: ruleForm.enabled,
       priority: ruleForm.priority,
-      tags: ruleForm.tags
+      tags: ruleForm.tags,
     }
-    
+
     if (ruleForm.id > 0) {
       // 更新
       const response = await updateDetectionRule(ruleForm.id, data)
@@ -761,7 +706,7 @@ const handleSaveRule = async () => {
     }
   } catch (error) {
     Message.error('保存失败')
-    console.error('保存检测规则失败:', error)
+    // '保存检测规则失败:', error)
   }
 }
 
@@ -774,9 +719,9 @@ const handleCancelRule = () => {
 const handleToggleRule = async (record: DetectionRule) => {
   try {
     const data = {
-      enabled: record.enabled
+      enabled: record.enabled,
     }
-    
+
     const response = await updateDetectionRule(record.id, data)
     if (response.code === 20000) {
       Message.success(`检测规则已${record.enabled ? '启用' : '禁用'}`)
@@ -787,7 +732,7 @@ const handleToggleRule = async (record: DetectionRule) => {
     }
   } catch (error) {
     Message.error('操作失败')
-    console.error('切换检测规则状态失败:', error)
+    // '切换检测规则状态失败:', error)
     // 回滚状态
     record.enabled = !record.enabled
   }
@@ -801,7 +746,7 @@ const handleDeleteRule = (record: DetectionRule) => {
     okText: '删除',
     cancelText: '取消',
     okButtonProps: {
-      status: 'danger'
+      status: 'danger',
     },
     onOk: async () => {
       try {
@@ -814,9 +759,9 @@ const handleDeleteRule = (record: DetectionRule) => {
         }
       } catch (error) {
         Message.error('删除失败')
-        console.error('删除检测规则失败:', error)
+        // '删除检测规则失败:', error)
       }
-    }
+    },
   })
 }
 
@@ -845,66 +790,101 @@ const handleDeleteAlertConfig = (record: AlertConfig) => {
 // 工具函数
 const getSourceTypeColor = (type: string) => {
   switch (type) {
-    case 'avd': return 'red'
-    case 'nvd': return 'blue'
-    case 'cnnvd': return 'green'
-    case 'cnvd': return 'orange'
-    case 'exploitdb': return 'purple'
-    case 'securityfocus': return 'cyan'
-    default: return 'gray'
+    case 'avd':
+      return 'red'
+    case 'nvd':
+      return 'blue'
+    case 'cnnvd':
+      return 'green'
+    case 'cnvd':
+      return 'orange'
+    case 'exploitdb':
+      return 'purple'
+    case 'securityfocus':
+      return 'cyan'
+    default:
+      return 'gray'
   }
 }
 
 const getSourceTypeText = (type: string) => {
   switch (type) {
-    case 'avd': return 'AVD'
-    case 'nvd': return 'NVD'
-    case 'cnnvd': return 'CNNVD'
-    case 'cnvd': return 'CNVD'
-    case 'exploitdb': return 'ExploitDB'
-    case 'securityfocus': return 'SecurityFocus'
-    default: return type
+    case 'avd':
+      return 'AVD'
+    case 'nvd':
+      return 'NVD'
+    case 'cnnvd':
+      return 'CNNVD'
+    case 'cnvd':
+      return 'CNVD'
+    case 'exploitdb':
+      return 'ExploitDB'
+    case 'securityfocus':
+      return 'SecurityFocus'
+    default:
+      return type
   }
 }
 
 const getRuleTypeText = (type: string) => {
   switch (type) {
-    case 'port': return '端口检测'
-    case 'service': return '服务检测'
-    case 'version': return '版本检测'
-    case 'cve': return 'CVE检测'
-    case 'custom': return '自定义'
-    default: return type
+    case 'port':
+      return '端口检测'
+    case 'service':
+      return '服务检测'
+    case 'version':
+      return '版本检测'
+    case 'cve':
+      return 'CVE检测'
+    case 'custom':
+      return '自定义'
+    default:
+      return type
   }
 }
 
 const getSeverityColor = (severity: string) => {
   switch (severity?.toLowerCase()) {
-    case 'critical': return 'red'
-    case 'high': return 'orange'
-    case 'medium': return 'yellow'
-    case 'low': return 'green'
-    default: return 'gray'
+    case 'critical':
+      return 'red'
+    case 'high':
+      return 'orange'
+    case 'medium':
+      return 'yellow'
+    case 'low':
+      return 'green'
+    default:
+      return 'gray'
   }
 }
 
 const getSeverityText = (severity: string) => {
   switch (severity?.toLowerCase()) {
-    case 'critical': return '严重'
-    case 'high': return '高危'
-    case 'medium': return '中危'
-    case 'low': return '低危'
-    default: return '未知'
+    case 'critical':
+      return '严重'
+    case 'high':
+      return '高危'
+    case 'medium':
+      return '中危'
+    case 'low':
+      return '低危'
+    default:
+      return '未知'
   }
 }
 
 const getActionText = (action: string) => {
   switch (action) {
-    case 'alert': return '预警'
-    case 'block': return '阻断'
-    case 'log': return '记录'
-    case 'report': return '报告'
-    default: return action
+    case 'alert':
+      return '预警'
+    case 'block':
+      return '阻断'
+    case 'log':
+      return '记录'
+    case 'report':
+      return '报告'
+    default:
+      return action
   }
 }
 

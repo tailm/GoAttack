@@ -7,7 +7,7 @@
           <span>{{ $t('menu.intelligence.alerts') }}</span>
         </a-space>
       </template>
-      
+
       <!-- 操作按钮区域 -->
       <div class="action-area">
         <a-space>
@@ -44,20 +44,10 @@
       <div class="search-area">
         <a-form :model="searchForm" layout="inline">
           <a-form-item field="search" :label="$t('alert.search.label')">
-            <a-input
-              v-model="searchForm.search"
-              :placeholder="$t('alert.search.placeholder')"
-              allow-clear
-              @change="handleSearch"
-            />
+            <a-input v-model="searchForm.search" :placeholder="$t('alert.search.placeholder')" allow-clear @change="handleSearch" />
           </a-form-item>
           <a-form-item field="severity" :label="$t('alert.severity.label')">
-            <a-select
-              v-model="searchForm.severity"
-              :placeholder="$t('alert.severity.placeholder')"
-              allow-clear
-              @change="handleSearch"
-            >
+            <a-select v-model="searchForm.severity" :placeholder="$t('alert.severity.placeholder')" allow-clear @change="handleSearch">
               <a-option value="critical">{{ $t('alert.severity.critical') }}</a-option>
               <a-option value="high">{{ $t('alert.severity.high') }}</a-option>
               <a-option value="medium">{{ $t('alert.severity.medium') }}</a-option>
@@ -65,24 +55,14 @@
             </a-select>
           </a-form-item>
           <a-form-item field="status" :label="$t('alert.status.label')">
-            <a-select
-              v-model="searchForm.status"
-              :placeholder="$t('alert.status.placeholder')"
-              allow-clear
-              @change="handleSearch"
-            >
+            <a-select v-model="searchForm.status" :placeholder="$t('alert.status.placeholder')" allow-clear @change="handleSearch">
               <a-option value="unread">{{ $t('alert.status.unread') }}</a-option>
               <a-option value="read">{{ $t('alert.status.read') }}</a-option>
               <a-option value="resolved">{{ $t('alert.status.resolved') }}</a-option>
             </a-select>
           </a-form-item>
           <a-form-item field="type" :label="$t('alert.type.label')">
-            <a-select
-              v-model="searchForm.type"
-              :placeholder="$t('alert.type.placeholder')"
-              allow-clear
-              @change="handleSearch"
-            >
+            <a-select v-model="searchForm.type" :placeholder="$t('alert.type.placeholder')" allow-clear @change="handleSearch">
               <a-option value="vulnerability">{{ $t('alert.type.vulnerability') }}</a-option>
               <a-option value="compliance">{{ $t('alert.type.compliance') }}</a-option>
               <a-option value="baseline">{{ $t('alert.type.baseline') }}</a-option>
@@ -158,41 +138,22 @@
           <a-table-column title="操作" :width="150" fixed="right">
             <template #cell="{ record }">
               <a-space>
-                <a-button 
-                  type="text" 
-                  size="small" 
-                  @click="handleViewDetail(record)"
-                >
+                <a-button type="text" size="small" @click="handleViewDetail(record)">
                   <template #icon>
                     <icon-eye />
                   </template>
                 </a-button>
-                <a-button 
-                  v-if="record.status === 'unread'"
-                  type="text" 
-                  size="small" 
-                  @click="handleMarkAsRead(record)"
-                >
+                <a-button v-if="record.status === 'unread'" type="text" size="small" @click="handleMarkAsRead(record)">
                   <template #icon>
                     <icon-check />
                   </template>
                 </a-button>
-                <a-button 
-                  v-if="record.status !== 'resolved'"
-                  type="text" 
-                  size="small" 
-                  @click="handleResolve(record)"
-                >
+                <a-button v-if="record.status !== 'resolved'" type="text" size="small" @click="handleResolve(record)">
                   <template #icon>
                     <icon-check-circle />
                   </template>
                 </a-button>
-                <a-button 
-                  type="text" 
-                  size="small" 
-                  status="danger"
-                  @click="handleDelete(record)"
-                >
+                <a-button type="text" size="small" status="danger" @click="handleDelete(record)">
                   <template #icon>
                     <icon-delete />
                   </template>
@@ -205,13 +166,7 @@
     </a-card>
 
     <!-- 预警详情对话框 -->
-    <a-modal
-      v-model:visible="detailVisible"
-      :title="detailTitle"
-      width="800px"
-      :footer="false"
-      @cancel="handleCloseDetail"
-    >
+    <a-modal v-model:visible="detailVisible" :title="detailTitle" width="800px" :footer="false" @cancel="handleCloseDetail">
       <div v-if="currentRecord">
         <a-descriptions :column="2" bordered>
           <a-descriptions-item label="预警ID">{{ currentRecord.id }}</a-descriptions-item>
@@ -236,41 +191,33 @@
             {{ currentRecord.resolved_at ? formatDate(currentRecord.resolved_at) : '未解决' }}
           </a-descriptions-item>
         </a-descriptions>
-        
+
         <a-divider />
-        
+
         <a-typography-title :heading="6">预警描述</a-typography-title>
         <a-typography-paragraph>
           {{ currentRecord.description || '暂无描述' }}
         </a-typography-paragraph>
-        
+
         <a-divider />
-        
+
         <a-typography-title :heading="6">预警数据</a-typography-title>
-        <pre v-if="currentRecord.data" style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow: auto;">
-{{ JSON.stringify(currentRecord.data, null, 2) }}
+        <pre v-if="currentRecord.data" style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow: auto"
+          >{{ JSON.stringify(currentRecord.data, null, 2) }}
         </pre>
         <a-typography-paragraph v-else>暂无数据</a-typography-paragraph>
-        
+
         <a-divider />
-        
+
         <div class="action-buttons" v-if="currentRecord.status !== 'resolved'">
           <a-space>
-            <a-button 
-              v-if="currentRecord.status === 'unread'"
-              type="primary" 
-              @click="handleMarkCurrentAsRead"
-            >
+            <a-button v-if="currentRecord.status === 'unread'" type="primary" @click="handleMarkCurrentAsRead">
               <template #icon>
                 <icon-check />
               </template>
               标记为已读
             </a-button>
-            <a-button 
-              type="primary" 
-              status="success"
-              @click="handleResolveCurrent"
-            >
+            <a-button type="primary" status="success" @click="handleResolveCurrent">
               <template #icon>
                 <icon-check-circle />
               </template>
@@ -282,13 +229,7 @@
     </a-modal>
 
     <!-- 创建预警对话框 -->
-    <a-modal
-      v-model:visible="createVisible"
-      title="新建预警"
-      width="600px"
-      @ok="handleCreateConfirm"
-      @cancel="handleCreateCancel"
-    >
+    <a-modal v-model:visible="createVisible" title="新建预警" width="600px" @ok="handleCreateConfirm" @cancel="handleCreateCancel">
       <a-form :model="createForm" :label-col-props="{ span: 6 }" :wrapper-col-props="{ span: 18 }">
         <a-form-item field="title" label="预警标题" required>
           <a-input v-model="createForm.title" placeholder="请输入预警标题" />
@@ -316,11 +257,7 @@
           <a-input v-model="createForm.source" placeholder="请输入预警来源" />
         </a-form-item>
         <a-form-item field="data" label="预警数据">
-          <a-textarea 
-            v-model="createForm.data" 
-            placeholder="请输入JSON格式的预警数据" 
-            :rows="4" 
-          />
+          <a-textarea v-model="createForm.data" placeholder="请输入JSON格式的预警数据" :rows="4" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -330,15 +267,7 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { Message, Modal } from '@arco-design/web-vue'
-import { 
-  getAlertList,
-  createAlert,
-  updateAlertStatus,
-  deleteAlert,
-  getAlertStats,
-  type Alert,
-  type AlertQuery
-} from '@/api/alert'
+import { getAlertList, createAlert, updateAlertStatus, deleteAlert, getAlertStats, type Alert, type AlertQuery } from '@/api/alert'
 
 // 搜索表单
 const searchForm = reactive({
@@ -347,7 +276,7 @@ const searchForm = reactive({
   status: '',
   type: '',
   startDate: '',
-  endDate: ''
+  endDate: '',
 })
 
 // 表格数据
@@ -359,7 +288,7 @@ const pagination = reactive({
   total: 0,
   showTotal: true,
   showPageSize: true,
-  pageSizeOptions: [10, 20, 50, 100]
+  pageSizeOptions: [10, 20, 50, 100],
 })
 
 // 统计信息
@@ -369,7 +298,7 @@ const stats = ref({
   critical: 0,
   high: 0,
   medium: 0,
-  low: 0
+  low: 0,
 })
 
 // 创建预警表单
@@ -380,7 +309,7 @@ const createForm = reactive({
   severity: 'medium',
   type: 'vulnerability',
   source: '',
-  data: '{}'
+  data: '{}',
 })
 
 // 详情对话框
@@ -390,7 +319,7 @@ const detailTitle = ref('预警详情')
 
 // 计算未读数量
 const unreadCount = computed(() => {
-  return tableData.value.filter(item => item.status === 'unread').length
+  return tableData.value.filter((item) => item.status === 'unread').length
 })
 
 // 获取数据
@@ -405,9 +334,9 @@ const fetchData = async () => {
       status: searchForm.status || undefined,
       type: searchForm.type || undefined,
       startDate: searchForm.startDate || undefined,
-      endDate: searchForm.endDate || undefined
+      endDate: searchForm.endDate || undefined,
     }
-    
+
     const response = await getAlertList(query)
     if (response.code === 20000) {
       tableData.value = response.data?.items || []
@@ -417,7 +346,7 @@ const fetchData = async () => {
     }
   } catch (error) {
     Message.error('获取数据失败')
-    console.error('获取预警列表失败:', error)
+    // 获取预警列表失败
   } finally {
     loading.value = false
   }
@@ -431,7 +360,7 @@ const fetchStats = async () => {
       stats.value = response.data
     }
   } catch (error) {
-    console.error('获取预警统计失败:', error)
+    // 获取预警统计失败
   }
 }
 
@@ -477,6 +406,15 @@ const handlePageSizeChange = (pageSize: number) => {
   fetchData()
 }
 
+const resetCreateForm = () => {
+  createForm.title = ''
+  createForm.description = ''
+  createForm.severity = 'medium'
+  createForm.type = 'vulnerability'
+  createForm.source = ''
+  createForm.data = '{}'
+}
+
 // 创建预警
 const handleCreateAlert = () => {
   createVisible.value = true
@@ -487,24 +425,24 @@ const handleCreateConfirm = async () => {
     Message.error('请输入预警标题')
     return
   }
-  
+
   if (!createForm.description.trim()) {
     Message.error('请输入预警描述')
     return
   }
-  
+
   try {
     const data = createForm.data ? JSON.parse(createForm.data) : {}
-    
+
     const response = await createAlert({
       title: createForm.title,
       description: createForm.description,
       severity: createForm.severity,
       type: createForm.type,
       source: createForm.source || undefined,
-      data
+      data,
     })
-    
+
     if (response.code === 20000) {
       Message.success('预警创建成功')
       createVisible.value = false
@@ -516,40 +454,13 @@ const handleCreateConfirm = async () => {
     }
   } catch (error) {
     Message.error('预警创建失败')
-    console.error('创建预警失败:', error)
+    // 创建预警失败
   }
 }
 
 const handleCreateCancel = () => {
   createVisible.value = false
   resetCreateForm()
-}
-
-const resetCreateForm = () => {
-  createForm.title = ''
-  createForm.description = ''
-  createForm.severity = 'medium'
-  createForm.type = 'vulnerability'
-  createForm.source = ''
-  createForm.data = '{}'
-}
-
-// 查看详情
-const handleViewDetail = (record: Alert) => {
-  currentRecord.value = record
-  detailTitle.value = `预警详情 - ${record.title}`
-  detailVisible.value = true
-  
-  // 如果是未读状态，自动标记为已读
-  if (record.status === 'unread') {
-    handleMarkAsRead(record)
-  }
-}
-
-// 关闭详情
-const handleCloseDetail = () => {
-  detailVisible.value = false
-  currentRecord.value = null
 }
 
 // 标记为已读
@@ -566,8 +477,26 @@ const handleMarkAsRead = async (record: Alert) => {
     }
   } catch (error) {
     Message.error('标记失败')
-    console.error('标记预警为已读失败:', error)
+    // 标记预警为已读失败
   }
+}
+
+// 查看详情
+const handleViewDetail = (record: Alert) => {
+  currentRecord.value = record
+  detailTitle.value = `预警详情 - ${record.title}`
+  detailVisible.value = true
+
+  // 如果是未读状态，自动标记为已读
+  if (record.status === 'unread') {
+    handleMarkAsRead(record)
+  }
+}
+
+// 关闭详情
+const handleCloseDetail = () => {
+  detailVisible.value = false
+  currentRecord.value = null
 }
 
 // 标记当前为已读
@@ -591,7 +520,7 @@ const handleResolve = async (record: Alert) => {
     }
   } catch (error) {
     Message.error('标记失败')
-    console.error('标记预警为已解决失败:', error)
+    // 标记预警为已解决失败
   }
 }
 
@@ -613,19 +542,22 @@ const handleMarkAllRead = async () => {
       try {
         // 这里需要调用批量标记已读的API
         // 暂时先标记当前页的所有未读预警
-        const unreadAlerts = tableData.value.filter(item => item.status === 'unread')
-        for (const alert of unreadAlerts) {
-          await updateAlertStatus(alert.id, 'read')
-          alert.status = 'read'
-          alert.read_at = new Date().toISOString()
-        }
+        const unreadAlerts = tableData.value.filter((item) => item.status === 'unread')
+        // 使用Promise.all并行处理
+        await Promise.all(
+          unreadAlerts.map(async (alert) => {
+            await updateAlertStatus(alert.id, 'read')
+            alert.status = 'read'
+            alert.read_at = new Date().toISOString()
+          })
+        )
         Message.success(`已标记 ${unreadAlerts.length} 条预警为已读`)
         fetchStats()
       } catch (error) {
         Message.error('标记失败')
-        console.error('批量标记预警为已读失败:', error)
+        // 批量标记预警为已读失败
       }
-    }
+    },
   })
 }
 
@@ -637,7 +569,7 @@ const handleDelete = (record: Alert) => {
     okText: '删除',
     cancelText: '取消',
     okButtonProps: {
-      status: 'danger'
+      status: 'danger',
     },
     onOk: async () => {
       try {
@@ -651,58 +583,81 @@ const handleDelete = (record: Alert) => {
         }
       } catch (error) {
         Message.error('删除失败')
-        console.error('删除预警失败:', error)
+        // 删除预警失败
       }
-    }
+    },
   })
 }
 
 // 工具函数
 const getSeverityColor = (severity: string) => {
   switch (severity?.toLowerCase()) {
-    case 'critical': return 'red'
-    case 'high': return 'orange'
-    case 'medium': return 'yellow'
-    case 'low': return 'green'
-    default: return 'gray'
+    case 'critical':
+      return 'red'
+    case 'high':
+      return 'orange'
+    case 'medium':
+      return 'yellow'
+    case 'low':
+      return 'green'
+    default:
+      return 'gray'
   }
 }
 
 const getSeverityText = (severity: string) => {
   switch (severity?.toLowerCase()) {
-    case 'critical': return '严重'
-    case 'high': return '高危'
-    case 'medium': return '中危'
-    case 'low': return '低危'
-    default: return '未知'
+    case 'critical':
+      return '严重'
+    case 'high':
+      return '高危'
+    case 'medium':
+      return '中危'
+    case 'low':
+      return '低危'
+    default:
+      return '未知'
   }
 }
 
 const getTypeText = (type: string) => {
   switch (type) {
-    case 'vulnerability': return '漏洞预警'
-    case 'compliance': return '合规预警'
-    case 'baseline': return '基线预警'
-    case 'system': return '系统预警'
-    default: return type
+    case 'vulnerability':
+      return '漏洞预警'
+    case 'compliance':
+      return '合规预警'
+    case 'baseline':
+      return '基线预警'
+    case 'system':
+      return '系统预警'
+    default:
+      return type
   }
 }
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'unread': return 'red'
-    case 'read': return 'green'
-    case 'resolved': return 'blue'
-    default: return 'gray'
+    case 'unread':
+      return 'red'
+    case 'read':
+      return 'green'
+    case 'resolved':
+      return 'blue'
+    default:
+      return 'gray'
   }
 }
 
 const getStatusText = (status: string) => {
   switch (status) {
-    case 'unread': return '未读'
-    case 'read': return '已读'
-    case 'resolved': return '已解决'
-    default: return status
+    case 'unread':
+      return '未读'
+    case 'read':
+      return '已读'
+    case 'resolved':
+      return '已解决'
+    default:
+      return status
   }
 }
 
