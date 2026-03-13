@@ -7,7 +7,7 @@ const INTELLIGENCE: AppRouteRecordRaw = {
   component: DEFAULT_LAYOUT,
   meta: {
     locale: 'menu.intelligence',
-    icon: 'icon-security',
+    icon: 'icon-search',
     requiresAuth: true,
     order: 3,
   },
