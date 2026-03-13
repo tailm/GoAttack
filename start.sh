@@ -144,18 +144,27 @@ start_backend() {
     sleep 3
     
     # 检查服务是否启动成功
-    if curl -s http://localhost:3000/health > /dev/null 2>&1; then
-        print_success "后端服务启动成功"
-    else
-        # 尝试其他健康检查端点
-        if curl -s http://localhost:3000 > /dev/null 2>&1; then
-            print_success "后端服务启动成功"
-        else
-            print_error "后端服务启动失败，请检查日志: $API_LOG"
-            tail -20 "$API_LOG"
-            return 1
+    print_info "等待后端服务启动..."
+    local max_attempts=30
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        if curl -s -f http://localhost:3000 > /dev/null 2>&1; then
+            print_success "后端服务启动成功 (端口: 3000)"
+            return 0
         fi
-    fi
+        
+        if [ $attempt -eq 10 ] || [ $attempt -eq 20 ]; then
+            print_info "后端服务启动中... (尝试 $attempt/$max_attempts)"
+        fi
+        
+        sleep 1
+        attempt=$((attempt + 1))
+    done
+    
+    print_error "后端服务启动失败，请检查日志: $API_LOG"
+    tail -20 "$API_LOG"
+    return 1
 }
 
 # 函数：启动前端服务
@@ -187,17 +196,28 @@ start_frontend() {
     fi
     echo $! > "$ADMIN_PID"
     
-    # 等待服务启动
-    sleep 5
-    
     # 检查服务是否启动成功
-    if curl -s http://localhost:5173 > /dev/null 2>&1; then
-        print_success "前端服务启动成功"
-    else
-        print_error "前端服务启动失败，请检查日志: $ADMIN_LOG"
-        tail -20 "$ADMIN_LOG"
-        return 1
-    fi
+    print_info "等待前端服务启动..."
+    local max_attempts=30
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        if curl -s -f http://localhost:5173 > /dev/null 2>&1; then
+            print_success "前端服务启动成功 (端口: 5173)"
+            return 0
+        fi
+        
+        if [ $attempt -eq 10 ] || [ $attempt -eq 20 ]; then
+            print_info "前端服务启动中... (尝试 $attempt/$max_attempts)"
+        fi
+        
+        sleep 1
+        attempt=$((attempt + 1))
+    done
+    
+    print_error "前端服务启动失败，请检查日志: $ADMIN_LOG"
+    tail -20 "$ADMIN_LOG"
+    return 1
 }
 
 # 函数：使用Docker启动
@@ -282,7 +302,7 @@ status_services() {
         API_PID_VALUE=$(cat "$API_PID")
         if kill -0 "$API_PID_VALUE" 2>/dev/null; then
             echo -e "后端服务: ${GREEN}运行中${NC} (PID: $API_PID_VALUE)"
-            if curl -s http://localhost:3000 > /dev/null 2>&1; then
+            if curl -s -f http://localhost:3000 > /dev/null 2>&1; then
                 echo -e "  端口3000: ${GREEN}可访问${NC}"
             else
                 echo -e "  端口3000: ${RED}不可访问${NC}"
@@ -299,7 +319,7 @@ status_services() {
         ADMIN_PID_VALUE=$(cat "$ADMIN_PID")
         if kill -0 "$ADMIN_PID_VALUE" 2>/dev/null; then
             echo -e "前端服务: ${GREEN}运行中${NC} (PID: $ADMIN_PID_VALUE)"
-            if curl -s http://localhost:5173 > /dev/null 2>&1; then
+            if curl -s -f http://localhost:5173 > /dev/null 2>&1; then
                 echo -e "  端口5173: ${GREEN}可访问${NC}"
             else
                 echo -e "  端口5173: ${RED}不可访问${NC}"
@@ -344,7 +364,7 @@ show_help() {
     echo "用法: $0 [命令]"
     echo ""
     echo "命令:"
-    echo "  start       启动本地开发环境（后端+前端）"
+    echo "  start       启动本地开发环境（先启动后端，再启动前端）"
     echo "  docker      使用Docker Compose启动所有服务"
     echo "  stop        停止所有服务"
     echo "  restart     重启所有服务"
