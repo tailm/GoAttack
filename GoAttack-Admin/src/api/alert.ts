@@ -102,25 +102,10 @@ export interface AlertSubscribeResponse {
   }
 }
 
-// 预警模型
-export interface Alert {
-  id: number
-  title: string
-  description: string
-  severity: 'critical' | 'high' | 'medium' | 'low'
-  type: string
-  source?: string
-  status: 'unread' | 'read' | 'resolved'
-  data?: Record<string, any>
-  created_at: string
-  read_at?: string
-  resolved_at?: string
-}
-
 // 获取预警列表
 export function getAlertList(params: AlertQuery) {
   return request.get<AlertResponse>('/api/alerts', {
-    params
+    params,
   })
 }
 
