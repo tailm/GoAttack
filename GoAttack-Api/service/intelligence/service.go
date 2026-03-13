@@ -43,7 +43,7 @@ func (s *Service) GetSources(ctx context.Context, page, pageSize int, search str
 		SELECT id, name, url, type, enabled, sync_interval, config, 
 		       last_sync, last_sync_status, last_sync_message,
 		       created_at, updated_at
-		FROM intelligence_sources
+		FROM intelligence_source
 		WHERE 1=1
 	`
 	args := []interface{}{}
@@ -116,7 +116,7 @@ func (s *Service) GetSources(ctx context.Context, page, pageSize int, search str
 	}
 
 	// 获取总数
-	countQuery := "SELECT COUNT(*) FROM intelligence_sources"
+	countQuery := "SELECT COUNT(*) FROM intelligence_source"
 	if search != "" {
 		countQuery += " WHERE name ILIKE $1 OR url ILIKE $1"
 	}
@@ -146,7 +146,7 @@ func (s *Service) GetSourceByID(ctx context.Context, id int) (*SourceConfig, err
 		SELECT id, name, url, type, enabled, sync_interval, config,
 		       last_sync, last_sync_status, last_sync_message,
 		       created_at, updated_at
-		FROM intelligence_sources
+		FROM intelligence_source
 		WHERE id = $1
 	`, id).Scan(
 		&source.ID,
@@ -192,7 +192,7 @@ func (s *Service) CreateSource(ctx context.Context, source *SourceConfig) error 
 	}
 
 	_, err = s.db.ExecContext(ctx, `
-		INSERT INTO intelligence_sources (
+		INSERT INTO intelligence_source (
 			name, url, type, enabled, sync_interval, config
 		) VALUES ($1, $2, $3, $4, $5, $6)
 	`,
@@ -224,7 +224,7 @@ func (s *Service) UpdateSource(ctx context.Context, id int, updates map[string]i
 	}
 
 	// 构建更新语句
-	query := "UPDATE intelligence_sources SET updated_at = CURRENT_TIMESTAMP"
+	query := "UPDATE intelligence_source SET updated_at = CURRENT_TIMESTAMP"
 	args := []interface{}{}
 	argIndex := 1
 
@@ -302,7 +302,7 @@ func (s *Service) DeleteSource(ctx context.Context, id int) error {
 	s.scheduler.removeJob(id)
 
 	// 从数据库中删除
-	_, err := s.db.ExecContext(ctx, "DELETE FROM intelligence_sources WHERE id = $1", id)
+	_, err := s.db.ExecContext(ctx, "DELETE FROM intelligence_source WHERE id = $1", id)
 	if err != nil {
 		return fmt.Errorf("删除情报源失败: %v", err)
 	}

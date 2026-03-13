@@ -33,8 +33,9 @@ func GenerateJWTSecretBytes(bits int) ([]byte, error) {
 	return key, nil
 }
 
-// JWT密钥
-var jwtSecret, _ = GenerateJWTSecretBytes(256)
+// JWT密钥 - 使用固定密钥，避免服务重启后令牌失效
+// 在生产环境中应该从环境变量或配置文件中读取
+var jwtSecret = []byte("GoAttack-JWT-Secret-Key-For-Security-2024-Change-In-Production")
 
 // LoginRequest 登录请求结构体
 type LoginRequest struct {

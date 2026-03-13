@@ -404,7 +404,7 @@ func (c *Collector) SaveToDatabase(ctx context.Context, vulnerabilities []Vulner
 func (c *Collector) UpdateSourceSyncStatus(ctx context.Context, sourceID int, status string, message string) error {
 	now := time.Now()
 	_, err := c.db.ExecContext(ctx, `
-		UPDATE intelligence_sources SET
+		UPDATE intelligence_source SET
 			last_sync = $1,
 			last_sync_status = $2,
 			last_sync_message = $3,

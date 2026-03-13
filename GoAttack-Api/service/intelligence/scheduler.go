@@ -258,7 +258,7 @@ func (s *Scheduler) checkSources(ctx context.Context) {
 func (s *Scheduler) loadEnabledSources(ctx context.Context) ([]SourceConfig, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, name, url, type, enabled, sync_interval, config, last_sync, last_sync_status
-		FROM intelligence_sources
+		FROM intelligence_source
 		WHERE enabled = true
 		ORDER BY id
 	`)
@@ -325,7 +325,7 @@ func (s *Scheduler) TriggerManualSync(ctx context.Context, sourceID int) error {
 	var source SourceConfig
 	err := s.db.QueryRowContext(ctx, `
 		SELECT id, name, url, type, enabled, sync_interval, config
-		FROM intelligence_sources
+		FROM intelligence_source
 		WHERE id = $1
 	`, sourceID).Scan(
 		&source.ID,
