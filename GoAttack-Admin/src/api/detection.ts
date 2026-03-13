@@ -1,5 +1,26 @@
 import request from '@/utils/request'
 
+// 检测任务模型
+export interface DetectionTask {
+  id: number
+  name: string
+  description?: string
+  detection_type: string
+  targets: string[]
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+  config?: Record<string, any>
+  schedule?: {
+    cron?: string
+    interval?: number
+    enabled?: boolean
+  }
+  created_at: string
+  updated_at: string
+  started_at?: string
+  completed_at?: string
+  created_by: string
+}
+
 // 检测任务查询参数
 export interface DetectionTaskQuery {
   page?: number

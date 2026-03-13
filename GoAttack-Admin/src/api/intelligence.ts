@@ -1,5 +1,33 @@
 import request from '@/utils/request'
 
+// 漏洞情报模型
+export interface VulnerabilityIntelligence {
+  id: number
+  cve_id: string
+  cnvd_id?: string
+  cnnvd_id?: string
+  title: string
+  description?: string
+  severity: string
+  cvss_score?: number
+  cvss_vector?: string
+  affected_products?: string[]
+  affected_versions?: string[]
+  vuln_references?: Array<{
+    title?: string
+    url: string
+    source?: string
+  }>
+  exploit_available: boolean
+  poc_available: boolean
+  published_at?: string
+  last_modified?: string
+  source: string
+  is_0day: boolean
+  created_at: string
+  updated_at: string
+}
+
 // 漏洞情报查询参数
 export interface VulnerabilityIntelligenceQuery {
   page?: number
@@ -82,44 +110,18 @@ export interface SyncStatusResponse {
   }
 }
 
-// 漏洞情报模型
-export interface VulnerabilityIntelligence {
-  id: number
-  cve_id: string
-  cnvd_id?: string
-  cnnvd_id?: string
-  title: string
-  description?: string
-  severity: string
-  cvss_score?: number
-  cvss_vector?: string
-  affected_products?: string[]
-  affected_versions?: string[]
-  vuln_references?: Array<{
-    title?: string
-    url: string
-    source?: string
-  }>
-  exploit_available: boolean
-  poc_available: boolean
-  published_at?: string
-  last_modified?: string
-  source: string
-  is_0day: boolean
-  created_at: string
-  updated_at: string
-}
-
 // 获取漏洞情报列表
 export function getVulnerabilityIntelligenceList(params: VulnerabilityIntelligenceQuery) {
   return request.get<VulnerabilityIntelligenceResponse>('/api/vulnerability/intelligence', {
-    params
+    params,
   })
 }
 
 // 获取漏洞情报详情
 export function getVulnerabilityIntelligenceDetail(id: number) {
-  return request.get<VulnerabilityIntelligenceDetailResponse>(`/api/vulnerability/intelligence/${id}`)
+  return request.get<VulnerabilityIntelligenceDetailResponse>(
+    `/api/vulnerability/intelligence/${id}`,
+  )
 }
 
 // 同步漏洞情报
@@ -140,6 +142,6 @@ export function getVulnerabilityStats() {
 // 搜索漏洞情报
 export function searchVulnerabilityIntelligence(keyword: string) {
   return request.get<VulnerabilityIntelligenceResponse>('/api/vulnerability/intelligence/search', {
-    params: { keyword }
+    params: { keyword },
   })
 }

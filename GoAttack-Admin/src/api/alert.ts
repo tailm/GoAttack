@@ -1,5 +1,20 @@
 import request from '@/utils/request'
 
+// 预警模型
+export interface Alert {
+  id: number
+  title: string
+  description: string
+  severity: 'critical' | 'high' | 'medium' | 'low'
+  type: string
+  source?: string
+  status: 'unread' | 'read' | 'resolved'
+  data?: Record<string, any>
+  created_at: string
+  read_at?: string
+  resolved_at?: string
+}
+
 // 预警查询参数
 export interface AlertQuery {
   page?: number
