@@ -19,6 +19,12 @@ export interface DetectionTask {
   started_at?: string
   completed_at?: string
   created_by: string
+  target_count?: number
+  vulnerability_count?: number
+  risk_level?: string
+  last_run?: string
+  next_run?: string
+  enabled: boolean
 }
 
 // 检测任务查询参数
@@ -83,6 +89,23 @@ export interface DetectionTaskStatusRequest {
   status: 'pending' | 'running' | 'completed' | 'failed' | 'stopped'
 }
 
+// 检测结果模型
+export interface DetectionResult {
+  id: number
+  task_id: number
+  asset_id?: number
+  vulnerability_id?: number
+  status: 'pending' | 'scanning' | 'completed' | 'failed'
+  risk_level: 'critical' | 'high' | 'medium' | 'low' | 'info'
+  details?: Record<string, any>
+  evidence?: string
+  verified: boolean
+  verified_by?: string
+  verified_at?: string
+  created_at: string
+  updated_at: string
+}
+
 // 检测结果响应
 export interface DetectionResultResponse {
   code: number
@@ -111,51 +134,10 @@ export interface DetectionStatsResponse {
   }
 }
 
-// 检测任务模型
-export interface DetectionTask {
-  id: number
-  task_id: number
-  name: string
-  description?: string
-  detection_type: string
-  config?: Record<string, any>
-  schedule?: {
-    cron?: string
-    interval?: number
-    enabled?: boolean
-  }
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'stopped'
-  target_count?: number
-  vulnerability_count?: number
-  risk_level?: string
-  last_run?: string
-  next_run?: string
-  enabled: boolean
-  created_at: string
-  updated_at: string
-}
-
-// 检测结果模型
-export interface DetectionResult {
-  id: number
-  task_id: number
-  asset_id?: number
-  vulnerability_id?: number
-  status: 'pending' | 'scanning' | 'completed' | 'failed'
-  risk_level: 'critical' | 'high' | 'medium' | 'low' | 'info'
-  details?: Record<string, any>
-  evidence?: string
-  verified: boolean
-  verified_by?: string
-  verified_at?: string
-  created_at: string
-  updated_at: string
-}
-
 // 获取检测任务列表
 export function getDetectionTaskList(params: DetectionTaskQuery) {
   return request.get<DetectionTaskResponse>('/api/detection/tasks', {
-    params
+    params,
   })
 }
 
@@ -182,7 +164,7 @@ export function deleteDetectionTask(id: number) {
 // 获取检测结果
 export function getDetectionResults(taskId: number, params?: { page?: number; pageSize?: number }) {
   return request.get<DetectionResultResponse>(`/api/detection/tasks/${taskId}/results`, {
-    params
+    params,
   })
 }
 
